@@ -1,9 +1,13 @@
 import javafx.application.Application;
 import javafx.stage.Stage;
-import rom.ROM;
+import system.NESSystem;
 
-import javax.swing.JFrame;
-import java.io.File;
+import javax.swing.*;
+import java.awt.Canvas;
+import java.awt.Color;
+import java.awt.Dimension;
+import java.awt.Graphics;
+
 
 public class Main extends Application {
 
@@ -19,23 +23,36 @@ public class Main extends Application {
     }
 
     public static void run() {
-        File file = new File("./sample1.nes");
-        try {
-            byte[] rom = ROM.loadFile(file);
+        NESSystem system = new NESSystem();
+        system.systemExecute();
 
-        } catch (Exception e) {
-
-        }
-        // JFrameのインスタンスを生成
-        JFrame frame = new JFrame("お絵かきアプリ");
-        // ウィンドウを閉じたらプログラムを終了する
+        JFrame frame = new JFrame("testNES");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        // ウィンドウのサイズ・初期位置
+
         frame.setSize(w, h);
         frame.setLocationRelativeTo(null);
-        // setBounds(x, y, w, h);
 
-        // ウィンドウを表示
+        ScreenCanvas canvas = new ScreenCanvas();
+
+        JPanel pane = new JPanel();
+        frame.getContentPane().add(pane);
+
+        canvas.setPreferredSize(new Dimension(w, h));
+        pane.add(canvas);
+
         frame.setVisible(true);
+    }
+
+
+    static class ScreenCanvas extends Canvas {
+
+        public ScreenCanvas() {
+            // キャンバスの背景を白に設定
+            setBackground(Color.white);
+        }
+
+        public void paint(Graphics g) {
+        }
+
     }
 }
