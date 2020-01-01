@@ -1,14 +1,17 @@
-package system.cpu;
+package system;
+
+import system.ppu.Ppu;
 
 public class Ram {
     byte[] wram;
-    byte[] ppuReg;
+    Ppu ppu;
     byte[] apuIoReg;
     public byte[] PRG_ROM;
     public byte[] CHR_ROM;
-    public Ram() {
+
+    public Ram(Ppu ppu) {
         wram = new byte[0x800];
-        ppuReg = new byte[0x008];
+        this.ppu = ppu;
         apuIoReg = new byte[0x020];
     };
 
@@ -19,6 +22,9 @@ public class Ram {
         }
         else if (address < 0x2008){
             // ppu i/o
+            if(address == 0x2006 || address == 0x2007){
+                ppu.IOAccess();
+            }
         }
         else if (address < 0x4000){
             // ppu i/o mirror * 1023
@@ -46,7 +52,7 @@ public class Ram {
         return 0x00;
     }
 
-    int getRAMValue16(int address){
+    public int getRAMValue16(int address){
         int lower, upper;
         int value;
         lower = getRAMValue(address + 0) & 0xFF;
@@ -55,10 +61,19 @@ public class Ram {
         return value;
     }
 
-    public void setRAMValue(int address, byte value){
-        if(0x0000 <= address && address < 0x2000){
+    public void setRAMValue(int address, byte value) {
+        if (0x0000 <= address && address < 0x2000) {
             //WRAM MIRROR * 3
             wram[address % 0x800] = value;
+        } else if (address < 0x2008) {
+            // ppu i/o
+            ppu.ppuReg[address - 0x2000] = value;
+            if (address == 0x2006) {
+                ppu.writePpuAddr();
+            }
+            if(address == 0x2007) {
+                ppu.writePpuData();
+            }
         }
     }
 }

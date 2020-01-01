@@ -25,7 +25,6 @@ public class Rom {
             PRG_ROM = Arrays.copyOfRange(rom, 0x10, 0x10 + PRG_ROM_sizeKB * 1024);
             int addr = 0x10 + PRG_ROM_sizeKB * 1024;
             CHR_ROM = Arrays.copyOfRange(rom, addr, addr + CHR_ROM_sizeKB * 1024);
-            byte[] prom = Arrays.copyOfRange(rom, 0x10, rom.length);
 
         } catch (Exception e) {
             PRG_ROM = new byte[1];

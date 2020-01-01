@@ -1,5 +1,5 @@
 package system.cpu;
-import system.cpu.Ram;
+import system.Ram;
 public class cpu6502 {
 
     public Ram ram;
@@ -26,9 +26,8 @@ public class cpu6502 {
         Indirect_Y
     }
 
-    public cpu6502(){
-        ram = new Ram();
-
+    public cpu6502(Ram ram){
+        this.ram = ram;
     }
 
     void init(){
@@ -48,10 +47,10 @@ public class cpu6502 {
 
     private void setP(boolean flag, int bitpos){
         if(flag){
-            regP |= (1 << bitpos);
+            regP |= (byte)(1 << bitpos);
         }
         else {
-            regP &= ~(1 << bitpos);
+            regP &= (byte)~(1 << bitpos);
         }
     }
 
@@ -145,33 +144,45 @@ public class cpu6502 {
     void opTXS(){
         if((regX & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
         }else{
             setFlagN(false);
+        }
+        if( (regX & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
         regS = regX;
     }
 
     void opINX(){
-        regX++;
+        regX = (byte)(regX + 1);
         if((regX & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
         }else{
             setFlagN(false);
+        }
+        if( (regX & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
     }
 
     void opDEY(){
-        regY--;
+        regY = (byte)(regY - 1);
         if((regY & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
         }else{
             setFlagN(false);
+        }
+        if( (regY & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
     }
 
@@ -184,10 +195,14 @@ public class cpu6502 {
         byte operand = getOperand(addressing);
         if((operand & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
         }else{
             setFlagN(false);
+        }
+        if( (operand & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
         regA = operand;
     }
@@ -196,23 +211,25 @@ public class cpu6502 {
         byte operand = getOperand(addressing);
         if((operand & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
-        }else{
+        }
+        else{
             setFlagN(false);
+        }
+        if( (operand & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
         regX = operand;
     }
 
     void opBNE(){
-        if( (regP & (1 << 1)) == 0 ){
-            int relative = getIm8(); // 符号付きでキャスト
+        boolean zeroFlag = !((regP & 0x02) == 0);
+        if( !zeroFlag ){
+            int relative = getIm8(); // TODO: ここは符号付きでキャスト？
             programCounter = programCounter + relative;
         }
-        else {
-            programCounter += 2;
-        }
-        regP = 0x00;
     }
 
     void opJMP_Abs(){
@@ -224,17 +241,21 @@ public class cpu6502 {
         byte operand = getOperand(addressing);
         if((operand & 0xFF) < 128){
             setFlagN(true);
-            setFlagZ(false);
         }else{
             setFlagN(false);
+        }
+        if( (operand & 0xFF) == 0 ){
             setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
         }
         regY = operand;
     }
 
     public void interpret(byte opcode){
         byte immediate;
-        System.out.println(opcode & 0xFF);
+        System.out.println(Integer.toHexString(opcode & 0xFF));
 
         int opcodeInt = opcode & 0xFF;
         switch(opcodeInt){
@@ -308,11 +329,12 @@ public class cpu6502 {
                 break;
             case 0xD0:
                 opBNE();
-                // programCounter;
+                programCounter += 2;
                 break;
             case 0x4C:
                 opJMP_Abs();
                 // programCounter;
+                // FIXME: pcインクリメントしないといかん気がする
                 break;
         }
     }
