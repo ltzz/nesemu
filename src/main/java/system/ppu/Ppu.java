@@ -5,13 +5,16 @@ import system.Ram;
 public class Ppu {
     public byte[] ppuRam;
     public byte[] ppuReg;
+    public byte[] ppuCHR_ROM;
     public int ppuAddrCount; //TODO: 直せたら直す
     public int ppuAddr;
+    public byte[] frameBuffer;
 
-    public Ppu(){
+    public Ppu(byte[] frameBuffer){
         ppuReg = new byte[8];
         ppuRam = new byte[0x4000]; // TODO: 今は容量適当
         ppuAddrCount = 0;
+        this.frameBuffer = frameBuffer;
     }
 
     public void IOAccess(){
@@ -35,6 +38,31 @@ public class Ppu {
         IOAccess();
     }
 
+    public void draw(){
+        for(int addr = 0x2000; addr < 0x2200; ++addr){ // TODO: 後で範囲直す
+            int nameIndex = ppuRam[addr];
+            if( nameIndex > 0 ){
+                for(int chrIndex = 0; chrIndex < 16; chrIndex++){
+                    int bgOffsetAddr = (ppuReg[0] & 0x10) > 0 ? 1000 : 0;
+                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + chrIndex];
+                    for(int shift = 0; shift < 4; ++shift){
+                        int offsetX = (addr - 0x2000) % (256 / 8);
+                        int offsetY = (addr - 0x2000) / (256 / 8);
+                        int chrPixelIndex = chrIndex * 4 + shift;
+                        int x = offsetX * 8 + (chrPixelIndex % 8);
+                        int y = offsetY * 8 + (chrPixelIndex / 8);
+                        int tmp = chrValue & (1 << (shift * 2))
+                                | chrValue & (1 << (shift * 2 + 1));
+                        int tmp2 = tmp >> shift * 2;
+                        byte value = (byte)(tmp2 * 255 / 3);
+                        frameBuffer[y * 256 + x] = value;
+                    }
+                }
+            }
+        }
+    }
+
     public void nextStep(){
+        draw();
     }
 }

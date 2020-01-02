@@ -10,13 +10,15 @@ public class NESSystem {
     cpu6502 cpu;
     public Ppu ppu;
     public Ram ram;
+    public byte[] frameBuffer = new byte[256*240];
 
     public NESSystem(){
         rom = new Rom("./sample1.nes"); // FIXME: 一旦ハードコード
-        ppu = new Ppu();
+        ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu);
         ram.PRG_ROM = rom.PRG_ROM;
         ram.CHR_ROM = rom.CHR_ROM;
+        ppu.ppuCHR_ROM = rom.CHR_ROM;
         cpu = new cpu6502(ram);
 
         reset();

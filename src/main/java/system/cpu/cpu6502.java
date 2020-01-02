@@ -233,8 +233,8 @@ public class cpu6502 {
     }
 
     void opJMP_Abs(){
-        int absolute = ram.getRAMValue(getIm16()) & 0xFF;
-        programCounter = programCounter + absolute;
+        int absolute = getIm16();
+        programCounter = absolute;
     }
 
     void opLDY(Addressing addressing){
@@ -333,8 +333,7 @@ public class cpu6502 {
                 break;
             case 0x4C:
                 opJMP_Abs();
-                // programCounter;
-                // FIXME: pcインクリメントしないといかん気がする
+                //programCounter += 3;// FIXME: pcインクリメントしないといかん気がする→確認
                 break;
         }
     }

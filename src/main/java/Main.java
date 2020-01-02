@@ -18,7 +18,7 @@ import java.util.Arrays;
 
 public class Main extends Application {
 
-    static int w = 400, h = 300;
+    static int w = 400, h = 400;
 
     public static void main(String[] args) {
         launch(args);
@@ -50,7 +50,7 @@ public class Main extends Application {
         frame.setVisible(true);
 
         try {
-            BufferedImage bufferedImage = new BufferedImage(320, 300, BufferedImage.TYPE_INT_RGB);
+            BufferedImage bufferedImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
             for(int y = 0; y < 20; y++) {
                 for (int x = 0; x < 320; x++) {
                     int value = (system.ram.CHR_ROM[y * 320 + x] & 0xFF) << 16
@@ -66,6 +66,15 @@ public class Main extends Application {
                             | (system.ppu.ppuRam[y * 256 + x] & 0xFF) << 8
                             | (system.ppu.ppuRam[y * 256 + x] & 0xFF);
                     bufferedImage.setRGB(x, y + 20, value);
+                }
+            }
+
+            for(int y = 0; y < 240; y++) {
+                for (int x = 0; x < 256; x++) {
+                    int value = (system.frameBuffer[y * 256 + x] & 0xFF) << 16
+                            | (system.frameBuffer[y * 256 + x] & 0xFF) << 8
+                            | (system.frameBuffer[y * 256 + x] & 0xFF);
+                    bufferedImage.setRGB(x, y + 100, value);
                 }
             }
 
