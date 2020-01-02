@@ -44,17 +44,19 @@ public class Ppu {
             if( nameIndex > 0 ) {
                 byte[] colorTable64 = new byte[64];
                 final int bgOffsetAddr = (ppuReg[0] & 0x10) > 0 ? 1000 : 0;
-                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 縦
-                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + 8 + chrIndex];
-                    for(int yIndex = 0; yIndex < 8; ++yIndex) {
-                        colorTable64[yIndex * 8 + chrIndex] += (chrValue & (1 << yIndex)) >> yIndex;
-                    }
-                }
-                
-                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 横
+
+                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
                     byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + chrIndex];
                     for(int xIndex = 0; xIndex < 8; ++xIndex){
-                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << xIndex)) >> xIndex;
+                        int shift = 7 - xIndex;
+                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << shift)) >> shift;
+                    }
+                }
+                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 後半
+                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + 8 + chrIndex];
+                    for(int xIndex = 0; xIndex < 8; ++xIndex){
+                        int shift = 7 - xIndex;
+                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << shift)) >> shift;
                     }
                 }
                 for(int colorTableIndex = 0; colorTableIndex < 64; colorTableIndex++){
