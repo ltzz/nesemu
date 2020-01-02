@@ -41,22 +41,30 @@ public class Ppu {
     public void draw(){
         for(int addr = 0x2000; addr < 0x2200; ++addr){ // TODO: 後で範囲直す
             int nameIndex = ppuRam[addr];
-            if( nameIndex > 0 ){
-                for(int chrIndex = 0; chrIndex < 16; chrIndex++){
-                    int bgOffsetAddr = (ppuReg[0] & 0x10) > 0 ? 1000 : 0;
+            if( nameIndex > 0 ) {
+                byte[] colorTable64 = new byte[64];
+                final int bgOffsetAddr = (ppuReg[0] & 0x10) > 0 ? 1000 : 0;
+                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 縦
+                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + 8 + chrIndex];
+                    for(int yIndex = 0; yIndex < 8; ++yIndex) {
+                        colorTable64[yIndex * 8 + chrIndex] += (chrValue & (1 << yIndex)) >> yIndex;
+                    }
+                }
+                
+                for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 横
                     byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + chrIndex];
-                    for(int shift = 0; shift < 4; ++shift){
+                    for(int xIndex = 0; xIndex < 8; ++xIndex){
+                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << xIndex)) >> xIndex;
+                    }
+                }
+                for(int colorTableIndex = 0; colorTableIndex < 64; colorTableIndex++){
                         int offsetX = (addr - 0x2000) % (256 / 8);
                         int offsetY = (addr - 0x2000) / (256 / 8);
-                        int chrPixelIndex = chrIndex * 4 + shift;
-                        int x = offsetX * 8 + (chrPixelIndex % 8);
-                        int y = offsetY * 8 + (chrPixelIndex / 8);
-                        int tmp = chrValue & (1 << (shift * 2))
-                                | chrValue & (1 << (shift * 2 + 1));
-                        int tmp2 = tmp >> shift * 2;
-                        byte value = (byte)(tmp2 * 255 / 3);
+                        int x = offsetX * 8 + (colorTableIndex % 8);
+                        int y = offsetY * 8 + (colorTableIndex / 8);
+                        int tmp = colorTable64[colorTableIndex];
+                        byte value = (byte)(tmp * 255 / 3);
                         frameBuffer[y * 256 + x] = value;
-                    }
                 }
             }
         }
