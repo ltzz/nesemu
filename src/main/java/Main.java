@@ -3,6 +3,7 @@ import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.PixelReader;
 import javafx.stage.Stage;
+import system.DrawTask;
 import system.NESSystem;
 
 import javax.imageio.ImageIO;
@@ -14,6 +15,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class Main extends Application {
@@ -31,7 +34,6 @@ public class Main extends Application {
 
     public static void run() {
         NESSystem system = new NESSystem();
-        system.systemExecute();
 
         JFrame frame = new JFrame("testNES");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -39,7 +41,7 @@ public class Main extends Application {
         frame.setSize(w, h);
         frame.setLocationRelativeTo(null);
 
-        ScreenCanvas canvas = new ScreenCanvas();
+        ScreenCanvas canvas = new ScreenCanvas(system);
 
         JPanel pane = new JPanel();
         frame.getContentPane().add(pane);
@@ -49,48 +51,27 @@ public class Main extends Application {
 
         frame.setVisible(true);
 
-        try {
-            BufferedImage bufferedImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
-            for(int y = 0; y < 20; y++) {
-                for (int x = 0; x < 320; x++) {
-                    int value = (system.ram.CHR_ROM[y * 320 + x] & 0xFF) << 16
-                            | (system.ram.CHR_ROM[y * 320 + x] & 0xFF) << 8
-                            | (system.ram.CHR_ROM[y * 320 + x] & 0xFF);
-                    bufferedImage.setRGB(x, y, value);
-                }
+        TimerTask task = new TimerTask() {
+            @Override
+            public void run() {
+                system.systemExecute();
+                canvas.screenBuffer = DrawTask.refreshFrameBuffer(system, w, h);
+                canvas.paint(canvas.getGraphics());
             }
+        };
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(task, 1000, 50);
 
-            for(int y = 0; y < 64; y++) {
-                for (int x = 0; x < 256; x++) {
-                    int value = (system.ppu.ppuRam[y * 256 + x] & 0xFF) << 16
-                            | (system.ppu.ppuRam[y * 256 + x] & 0xFF) << 8
-                            | (system.ppu.ppuRam[y * 256 + x] & 0xFF);
-                    bufferedImage.setRGB(x, y + 20, value);
-                }
-            }
-
-            for(int y = 0; y < 240; y++) {
-                for (int x = 0; x < 256; x++) {
-                    int value = (system.frameBuffer[y * 256 + x] & 0xFF) << 16
-                            | (system.frameBuffer[y * 256 + x] & 0xFF) << 8
-                            | (system.frameBuffer[y * 256 + x] & 0xFF);
-                    bufferedImage.setRGB(x, y + 100, value);
-                }
-            }
-
-            canvas.screenBuffer = bufferedImage;
-            // ImageIO.write(bufferedImage, "png", new File("debug_out.png"));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
     }
 
 
     static class ScreenCanvas extends Canvas {
 
         public BufferedImage screenBuffer = null;
+        NESSystem system;
 
-        public ScreenCanvas() {
+        public ScreenCanvas(NESSystem system) {
+            this.system = system;
             // キャンバスの背景を白に設定
             // setBackground(Color.white);
         }

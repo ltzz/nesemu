@@ -21,14 +21,27 @@ public class Rom {
             // TODO headerチェック
             int PRG_ROM_sizeKB = rom[4] * 16;
             int CHR_ROM_sizeKB = rom[5] * 8;
+            int mirroring = rom[6] & 0x01;
 
-            PRG_ROM = Arrays.copyOfRange(rom, 0x10, 0x10 + PRG_ROM_sizeKB * 1024);
+            byte[] tmpRom = Arrays.copyOfRange(rom, 0x10, 0x10 + PRG_ROM_sizeKB * 1024);
+            if(mirroring > 0){
+                // TODO: ちゃんとミラーされるようにコピーをやめる
+                // TODO: アクセスの際に上位ビット無視すればミラーと同じ挙動？
+                byte[] mirrorRom = new byte[32 * 1024];
+                System.arraycopy(tmpRom, 0, mirrorRom, 0, tmpRom.length);
+                if(tmpRom.length < 32 * 1024 && tmpRom.length + tmpRom.length <= 32 * 1024){
+                    System.arraycopy(tmpRom, 0, mirrorRom, tmpRom.length, tmpRom.length);
+                }
+                PRG_ROM = mirrorRom;
+            }
+            else{
+                PRG_ROM = tmpRom;
+            }
             int addr = 0x10 + PRG_ROM_sizeKB * 1024;
             CHR_ROM = Arrays.copyOfRange(rom, addr, addr + CHR_ROM_sizeKB * 1024);
 
         } catch (Exception e) {
-            PRG_ROM = new byte[1];
-            CHR_ROM = new byte[1];
+            e.printStackTrace();
         }
     }
 

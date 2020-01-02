@@ -171,6 +171,21 @@ public class cpu6502 {
         }
     }
 
+    void opINY(){
+        regY = (byte)(regY + 1);
+        if((regY & 0xFF) < 128){
+            setFlagN(true);
+        }else{
+            setFlagN(false);
+        }
+        if( (regY & 0xFF) == 0 ){
+            setFlagZ(true);
+        }
+        else {
+            setFlagZ(false);
+        }
+    }
+
     void opDEY(){
         regY = (byte)(regY - 1);
         if((regY & 0xFF) < 128){
@@ -190,7 +205,13 @@ public class cpu6502 {
         ram.setRAMValue(getOperandAddress(addressing), regA);
     }
 
+    void opSTX(Addressing addressing){
+        ram.setRAMValue(getOperandAddress(addressing), regX);
+    }
 
+    void opSTY(Addressing addressing){
+        ram.setRAMValue(getOperandAddress(addressing), regY);
+    }
     void opLDA(Addressing addressing){
         byte operand = getOperand(addressing);
         if((operand & 0xFF) < 128){
@@ -230,6 +251,12 @@ public class cpu6502 {
             int relative = getIm8(); // TODO: ここは符号付きでキャスト？
             programCounter = programCounter + relative;
         }
+    }
+
+    void opJSR(){
+        int absolute = getIm16();
+        programCounter = absolute;
+        // TODO: サブルーチン呼び出しなのでもろもろ退避しないといけない
     }
 
     void opJMP_Abs(){
@@ -315,12 +342,32 @@ public class cpu6502 {
                 opSTA(Addressing.Absolute);
                 programCounter += 3;
                 break;
+            case 0x9D://STA(AbsoluteX):Aからメモリにストア(3バイト/5サイクル)
+                opSTA(Addressing.AbsoluteX);
+                programCounter += 3;
+                break;
+            case 0x91://STA(Indirect_Y):Aからメモリにストア(2バイト/6サイクル)
+                opSTA(Addressing.Indirect_Y);
+                programCounter += 2;
+                break;
+            case 0x86://STX(Zeropage):Xからメモリにストア(2バイト/3サイクル)
+                opSTX(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0x84://STY(Zeropage):Yからメモリにストア(2バイト/3サイクル)
+                opSTY(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
             case 0x9A:
                 opTXS();
                 programCounter++;
                 break;
             case 0xE8:
                 opINX();
+                programCounter++;
+                break;
+            case 0xC8:
+                opINY();
                 programCounter++;
                 break;
             case 0x88:
@@ -330,6 +377,9 @@ public class cpu6502 {
             case 0xD0:
                 opBNE();
                 programCounter += 2;
+                break;
+            case 0x20:
+                opJSR();
                 break;
             case 0x4C:
                 opJMP_Abs();

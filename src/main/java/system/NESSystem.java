@@ -14,6 +14,7 @@ public class NESSystem {
 
     public NESSystem(){
         rom = new Rom("./sample1.nes"); // FIXME: 一旦ハードコード
+//        rom = new Rom("./SHOOT.nes"); // FIXME: 一旦ハードコード
         ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu);
         ram.PRG_ROM = rom.PRG_ROM;
@@ -32,9 +33,7 @@ public class NESSystem {
     }
 
     public void systemExecute(){
-        for(int i=0; i < 200; ++i){
-            cpu.interpret(cpu.ram.getRAMValue(cpu.programCounter));
-            ppu.nextStep();
-        }
+        cpu.interpret(cpu.ram.getRAMValue(cpu.programCounter));
+        ppu.nextStep();
     }
 }
