@@ -5,10 +5,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Arrays;
 
-public class Rom {
+public final class Rom {
 
     public byte[] PRG_ROM;
     public byte[] CHR_ROM;
+    public int PRG_ROM_SIZE;
 
     public Rom(String filename){
         loadPRGROM(filename);
@@ -22,6 +23,8 @@ public class Rom {
             int PRG_ROM_sizeKB = rom[4] * 16;
             int CHR_ROM_sizeKB = rom[5] * 8;
             int mirroring = rom[6] & 0x01;
+
+            PRG_ROM_SIZE = PRG_ROM_sizeKB* 1024;
 
             byte[] tmpRom = Arrays.copyOfRange(rom, 0x10, 0x10 + PRG_ROM_sizeKB * 1024);
             if(mirroring > 0){

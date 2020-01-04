@@ -1,18 +1,24 @@
 package system;
 
 import system.ppu.Ppu;
+import system.rom.Rom;
 
-public class Ram {
+public final class Ram {
     byte[] wram;
     Ppu ppu;
     byte[] apuIoReg;
     public byte[] PRG_ROM;
     public byte[] CHR_ROM;
+    int PRG_ROM_SIZE;
 
-    public Ram(Ppu ppu) {
+    public Ram(Ppu ppu, Rom rom) {
         wram = new byte[0x800];
         this.ppu = ppu;
         apuIoReg = new byte[0x020];
+
+        PRG_ROM = rom.PRG_ROM;
+        CHR_ROM = rom.CHR_ROM;
+        PRG_ROM_SIZE = rom.PRG_ROM_SIZE;
     };
 
     public byte getRAMValue(int address){
@@ -40,11 +46,11 @@ public class Ram {
         }
         else if (address < 0xC000){
             // prg-rom low
-            return PRG_ROM[address - 0x8000];
+            return PRG_ROM[(address - 0x8000) % PRG_ROM_SIZE];
         }
         else if (address <= 0xFFFF){
             // prg-ram high
-            return PRG_ROM[address - 0x8000];
+            return PRG_ROM[(address - 0x8000) % PRG_ROM_SIZE];
         }
         else{
             // ppu
@@ -71,8 +77,14 @@ public class Ram {
             if (address == 0x2006) {
                 ppu.writePpuAddr();
             }
-            if(address == 0x2007) {
+            else if(address == 0x2007) {
                 ppu.writePpuData();
+            }
+            else if( address == 0x2004 ){
+                final int a = 1;
+            }
+            else if( address == 0x2005 ){
+                final int a = 1;
             }
         }
     }

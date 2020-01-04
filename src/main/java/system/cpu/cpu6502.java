@@ -1,6 +1,6 @@
 package system.cpu;
 import system.Ram;
-public class cpu6502 {
+public final class cpu6502 {
 
     public Ram ram;
     public int programCounter;
@@ -30,11 +30,16 @@ public class cpu6502 {
         this.ram = ram;
     }
 
-    void init(){
+    public void init(){
+        regP = (byte)0x34;
+        regS = (byte)0xFD;
     }
 
     void setFlagI(boolean value){
         setP(value, 2);
+    }
+    void setFlagB(boolean value){
+        setP(value, 4);
     }
 
     void setFlagN(boolean value){
@@ -43,6 +48,14 @@ public class cpu6502 {
 
     void setFlagZ(boolean value){
         setP(value, 1);
+    }
+
+    void setFlagC(boolean value){
+        setP(value, 0);
+    }
+
+    void setFlagV(boolean value){
+        setP(value, 6);
     }
 
     private void setP(boolean flag, int bitpos){
@@ -141,64 +154,149 @@ public class cpu6502 {
         return data;
     }
 
-    void opTXS(){
-        if((regX & 0xFF) < 128){
+    void evalNZ(final byte data){
+        if((data & 0xFF) < 128){
             setFlagN(true);
         }else{
             setFlagN(false);
         }
-        if( (regX & 0xFF) == 0 ){
+        if( (data & 0xFF) == 0 ){
             setFlagZ(true);
         }
         else {
             setFlagZ(false);
         }
+    }
+
+    void opTXS(){
+        evalNZ(regX);
         regS = regX;
+    }
+    void opTAX(){
+        evalNZ(regA);
+        regX = regA;
+    }
+    void opTAY(){
+        evalNZ(regA);
+        regY = regA;
+    }
+
+    void opCPXIm(){
+        evalNZ(regX); // TODO: フラグ要確認
+        if( regX > getIm8() ) { // TODO: 比較順序要確認
+            setFlagC(true);
+        }
+        // Xと即値を比較
+    }
+
+    void opCMPZeropage(){
+        int zeroPageData = ram.getRAMValue(getIm8() & 0xFF );
+        if( regA >= zeroPageData ) {
+            setFlagC(true);
+        }else{
+            setFlagC(false);
+        }
+        if( regA == zeroPageData ) {
+            setFlagZ(true);
+        }else{
+            setFlagZ(false);
+        }
+    }
+
+    void opBITAbs(){
+        final int absolute = getIm16();
+        byte value = ram.getRAMValue(absolute);
+        if( (value & 0x80) > 0 ){
+            setFlagN(true);
+        }
+        else{
+            setFlagN(false);
+        }
+        if( (value & 0x40) > 0 ){
+            setFlagV(true);
+        }
+        else{
+            setFlagV(false);
+        }
+        if( (regA & value) == 0 ) { // TODO: ロジック確認してないので要確認
+            setFlagZ(true);
+        }
+        else{
+            setFlagZ(false);
+        }
+    }
+
+    void opADC(Addressing addressing) {
+        final byte value = getOperand(addressing);
+        final int carry = regP & 0x01;
+        final int resultValue = (regA & 0xFF) + value + carry;
+        regA = (byte)(resultValue);
+        evalNZ(value);
+        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
+    }
+
+    void opASL() {
+        final int resultValue = (regA & 0xFF) << 1;
+        regA = (byte)(resultValue);
+        evalNZ(regA);
+        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
+    }
+
+    void opASL(Addressing addressing) {
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
+        int resultValue = (value & 0xFF) << 1;
+        value = (byte)(resultValue);
+        ram.setRAMValue(address, value);
+        evalNZ(value);
+        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
     }
 
     void opINX(){
         regX = (byte)(regX + 1);
-        if((regX & 0xFF) < 128){
-            setFlagN(true);
-        }else{
-            setFlagN(false);
-        }
-        if( (regX & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
+        evalNZ(regX);
+    }
+
+    void opINC(Addressing addressing){
+        final int address = getIm8() & 0xFF;
+        byte value = ram.getRAMValue(address);
+        value = (byte)(value + 1);
+        ram.setRAMValue(address, value);
+        evalNZ(value);
     }
 
     void opINY(){
         regY = (byte)(regY + 1);
-        if((regY & 0xFF) < 128){
-            setFlagN(true);
-        }else{
-            setFlagN(false);
-        }
-        if( (regY & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
+        evalNZ(regY);
+    }
+
+    void opDEX(){
+        regX = (byte)(regX - 1);
+        evalNZ(regX);
     }
 
     void opDEY(){
         regY = (byte)(regY - 1);
-        if((regY & 0xFF) < 128){
-            setFlagN(true);
-        }else{
-            setFlagN(false);
-        }
-        if( (regY & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
+        evalNZ(regY);
+    }
+
+    void opCLC(){
+        regP = (byte)(regP & 0xFE);
     }
 
     void opSTA(Addressing addressing){
@@ -212,72 +310,106 @@ public class cpu6502 {
     void opSTY(Addressing addressing){
         ram.setRAMValue(getOperandAddress(addressing), regY);
     }
+
     void opLDA(Addressing addressing){
-        byte operand = getOperand(addressing);
-        if((operand & 0xFF) < 128){
-            setFlagN(true);
-        }else{
-            setFlagN(false);
-        }
-        if( (operand & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
+        final byte operand = getOperand(addressing);
+        evalNZ(operand);
         regA = operand;
     }
-
     void opLDX(Addressing addressing){
-        byte operand = getOperand(addressing);
-        if((operand & 0xFF) < 128){
-            setFlagN(true);
-        }
-        else{
-            setFlagN(false);
-        }
-        if( (operand & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
+        final byte operand = getOperand(addressing);
+        evalNZ(operand);
         regX = operand;
+    }
+    void opLDY(Addressing addressing){
+        final byte operand = getOperand(addressing);
+        evalNZ(operand);
+        regY = operand;
     }
 
     void opBNE(){
-        boolean zeroFlag = !((regP & 0x02) == 0);
+        final boolean zeroFlag = !((regP & 0x02) == 0);
         if( !zeroFlag ){
-            int relative = getIm8(); // TODO: ここは符号付きでキャスト？
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBPL(){
+        final boolean negativeFlag = !((regP & 0x80) == 0);
+        if( !negativeFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBCC(){
+        final boolean carryFlag = !((regP & 0x01) == 0);
+        if( !carryFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBEQ(){
+        final boolean zeroFlag = !((regP & 0x02) == 0);
+        if( zeroFlag ){
+            final int relative = getIm8();
             programCounter = programCounter + relative;
         }
     }
 
     void opJSR(){
-        int absolute = getIm16();
+        final int absolute = getIm16();
+        final int toStackValue = programCounter + 2; // この命令の最後のアドレスをpush
+        final byte upper = (byte)((toStackValue >> 8) & 0xFF);
+        final byte lower = (byte)(toStackValue & 0xFF);
+        final int stackAddress = 0x100 + (regS & 0xFF);
+        ram.setRAMValue(stackAddress, upper);
+        ram.setRAMValue(stackAddress- 1, lower);
+        regS = (byte)(regS - 2);
         programCounter = absolute;
-        // TODO: サブルーチン呼び出しなのでもろもろ退避しないといけない
+    }
+
+    void opPHA(){
+        final int stackAddress = 0x100 + (regS & 0xFF);
+        ram.setRAMValue(stackAddress, regA);
+        regS = (byte)(regS - 1);
+    }
+
+    void opPHP(){
+        final int stackAddress = 0x100 + (regS & 0xFF);
+        ram.setRAMValue(stackAddress, regP);
+        regS = (byte)(regS - 1);
+    }
+    void opPLP(){
+        final int stackAddress = 0x100 + (regS & 0xFF) + 1;
+        regP = ram.getRAMValue(stackAddress);
+        regS = (byte)(regS + 1);
+    }
+
+    void opRTS(){
+        final int stackAddress = 0x100 + (regS & 0xFF) + 1;
+        final byte lower = ram.getRAMValue(stackAddress);
+        final byte upper = ram.getRAMValue(stackAddress + 1);
+        programCounter = ((upper & 0xFF) << 8) | (lower & 0xFF);
+        //programCounter = (upper << 8) | lower;
+        regS = (byte)(regS + 2);
+    }
+
+    void opPLA(){
+        final int address = 0x100 + (regS & 0xFF) + 1;
+        final byte value = ram.getRAMValue(address);
+        regA = value;
+        evalNZ(regA);
+        regS = (byte)(regS + 1);
+    }
+
+    void opBRK(){
+        setFlagI(true);
+        setFlagB(true);
     }
 
     void opJMP_Abs(){
         int absolute = getIm16();
         programCounter = absolute;
-    }
-
-    void opLDY(Addressing addressing){
-        byte operand = getOperand(addressing);
-        if((operand & 0xFF) < 128){
-            setFlagN(true);
-        }else{
-            setFlagN(false);
-        }
-        if( (operand & 0xFF) == 0 ){
-            setFlagZ(true);
-        }
-        else {
-            setFlagZ(false);
-        }
-        regY = operand;
     }
 
     public void interpret(byte opcode){
@@ -289,6 +421,14 @@ public class cpu6502 {
             case 0xA2://LDX(Immediate):メモリからXにロード(2バイト/2サイクル)
                 opLDX(Addressing.Immediate);
                 programCounter += 2;
+                break;
+            case 0xA6://LDX(Zeropage):メモリからXにロード(2バイト/3サイクル)
+                opLDX(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0xAE://LDX(Absolute):メモリからXにロード(3バイト/4サイクル)
+                opLDX(Addressing.Absolute);
+                programCounter += 3;
                 break;
             case 0x78://SEI:IRQ割り込みの禁止(1バイト/2サイクル)
                 setFlagI(true);
@@ -326,9 +466,13 @@ public class cpu6502 {
                 opLDA(Addressing.Indirect_Y);
                 programCounter += 2;
                 break;
-            case 0xA0://LDY(Immediate):メモリからAにロード(2バイト/2サイクル)
+            case 0xA0://LDY(Immediate):メモリからYにロード(2バイト/2サイクル)
                 opLDY(Addressing.Immediate);
                 programCounter += 2;
+                break;
+            case 0xAC://LDY(Absolute):メモリからAにロード(3バイト/4サイクル)
+                opLDY(Addressing.Absolute);
+                programCounter += 3;
                 break;
             case 0x85://STA(Zeropage):Aからメモリにストア(2バイト/3サイクル)
                 opSTA(Addressing.ZeroPage);
@@ -354,13 +498,58 @@ public class cpu6502 {
                 opSTX(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
+            case 0x8E://STX(Absolute):Xからメモリにストア(3バイト/4サイクル)
+                opSTX(Addressing.Absolute);
+                programCounter += 3;
+                break;
+            case 0x8C://STY(Absolute):Yからメモリにストア(3バイト/4サイクル)
+                opSTY(Addressing.Absolute);
+                programCounter += 3;
+                break;
             case 0x84://STY(Zeropage):Yからメモリにストア(2バイト/3サイクル)
                 opSTY(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
             case 0x9A:
+                // TODO: Sに0を入れているROMがあり、うまく動作しない（あるいは入れる元の計算結果が誤り
                 opTXS();
                 programCounter++;
+                break;
+            case 0xAA:
+                opTAX();
+                programCounter++;
+                break;
+            case 0xA8:
+                opTAY();
+                programCounter++;
+                break;
+            case 0xE0:
+                opCPXIm();
+                programCounter += 2;
+                break;
+            case 0xC5:
+                opCMPZeropage();
+                programCounter += 2;
+                break;
+            case 0x2C:
+                opBITAbs();
+                programCounter += 3;
+                break;
+            case 0x69:
+                opADC(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0x65:
+                opADC(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0x06:
+                opASL(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0x0A:
+                opASL();
+                programCounter += 1;
                 break;
             case 0xE8:
                 opINX();
@@ -368,6 +557,14 @@ public class cpu6502 {
                 break;
             case 0xC8:
                 opINY();
+                programCounter++;
+                break;
+            case 0xE6: // (2バイト/5サイクル)
+                opINC(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0xCA:
+                opDEX();
                 programCounter++;
                 break;
             case 0x88:
@@ -378,12 +575,55 @@ public class cpu6502 {
                 opBNE();
                 programCounter += 2;
                 break;
+            case 0x10:
+                opBPL();
+                programCounter += 2;
+                break;
+            case 0x90:
+                opBCC();
+                programCounter += 2;
+                break;
+            case 0xF0:
+                opBEQ();
+                programCounter += 2;
+                break;
             case 0x20:
                 opJSR();
+                break;
+            case 0x48:
+                opPHA();
+                programCounter += 1;
+                break;
+            case 0x08:
+                opPHP();
+                programCounter += 1;
+                break;
+            case 0x28:
+                opPLP();
+                programCounter += 1;
+                break;
+            case 0x68:
+                opPLA();
+                programCounter += 1;
+                break;
+            case 0x60:
+                opRTS();
+                programCounter += 1;
                 break;
             case 0x4C:
                 opJMP_Abs();
                 //programCounter += 3;// FIXME: pcインクリメントしないといかん気がする→確認
+                break;
+            case 0x18:
+                opCLC();
+                programCounter++;
+                break;
+            case 0xEA:
+                // NOP
+                programCounter++;
+                break;
+            case 0xD8: // CLD ファミコン用6502では命令なし
+                programCounter += 1;
                 break;
         }
     }

@@ -2,7 +2,7 @@ package system.ppu;
 
 import system.Ram;
 
-public class Ppu {
+public final class Ppu {
     public byte[] ppuRam;
     public byte[] ppuReg;
     public byte[] ppuCHR_ROM;
@@ -19,7 +19,7 @@ public class Ppu {
 
     public void IOAccess(){
         System.out.println("ppu_addr " + Integer.toHexString(ppuAddr));
-        System.out.println("ppu_data " + Integer.toHexString(ppuReg[7] & 0Xff));
+        System.out.println("ppu_data " + Integer.toHexString(ppuReg[7] & 0xFF));
     }
 
     public void writePpuAddr(){
@@ -34,39 +34,53 @@ public class Ppu {
 
     public void writePpuData(){
         ppuRam[ppuAddr] = ppuReg[7];
-        ppuAddr += 1; // TODO: $2000の値によって32byteインクリメント
+        int addressInc = 1;
+        if((ppuReg[0] & 0x04) > 0){ // $2000の値によって32byteインクリメント
+            addressInc = 32;
+        }
+        ppuAddr += addressInc;
         IOAccess();
     }
 
     public void draw(){
-        for(int addr = 0x2000; addr < 0x2200; ++addr){ // TODO: 後で範囲直す
-            int nameIndex = ppuRam[addr];
-            if( nameIndex > 0 ) {
+        final int blockWidth = (256 / 8);
+        final int mainScreen = ppuReg[0] & 0x03;
+        final int startAddr = 0x2000 + (mainScreen * 0x400);
+        final int endAddr = 0x2400 + (mainScreen * 0x400);
+
+        for(int addr = startAddr; addr < endAddr; ++addr){ // TODO: 後で範囲直す
+            final int tileId = ppuRam[addr];
+            final int tileIdOffsetAddress = tileId * 16;
+            if( tileId > 0 ) {
                 byte[] colorTable64 = new byte[64];
                 final int bgOffsetAddr = (ppuReg[0] & 0x10) > 0 ? 1000 : 0;
 
                 for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
-                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + chrIndex];
+                    final byte chrValue = ppuCHR_ROM[bgOffsetAddr + tileIdOffsetAddress + chrIndex];
+                    final int yCacheIndex = chrIndex * 8;
                     for(int xIndex = 0; xIndex < 8; ++xIndex){
-                        int shift = 7 - xIndex;
-                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << shift)) >> shift;
+                        final int shift = 7 - xIndex;
+                        colorTable64[yCacheIndex + xIndex] += (chrValue & (1 << shift)) >> shift;
                     }
                 }
                 for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 後半
-                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + nameIndex * 16 + 8 + chrIndex];
+                    byte chrValue = ppuCHR_ROM[bgOffsetAddr + tileIdOffsetAddress + 8 + chrIndex];
+                    final int yCacheIndex = chrIndex * 8;
                     for(int xIndex = 0; xIndex < 8; ++xIndex){
-                        int shift = 7 - xIndex;
-                        colorTable64[chrIndex * 8 + xIndex] += (chrValue & (1 << shift)) >> shift;
+                        final int shift = 7 - xIndex;
+                        colorTable64[yCacheIndex + xIndex] += (chrValue & (1 << shift)) >> shift;
                     }
                 }
+                final int offsetBlockX = (addr - 0x2000) % blockWidth;
+                final int offsetBlockY = (addr - 0x2000) / blockWidth;
+                final int offsetX = offsetBlockX * 8;
+                final int offsetY = offsetBlockY * 8;
                 for(int colorTableIndex = 0; colorTableIndex < 64; colorTableIndex++){
-                        int offsetX = (addr - 0x2000) % (256 / 8);
-                        int offsetY = (addr - 0x2000) / (256 / 8);
-                        int x = offsetX * 8 + (colorTableIndex % 8);
-                        int y = offsetY * 8 + (colorTableIndex / 8);
-                        int tmp = colorTable64[colorTableIndex];
-                        byte value = (byte)(tmp * 255 / 3);
-                        frameBuffer[y * 256 + x] = value;
+                    final int x = offsetX + (colorTableIndex % 8);
+                    final int y = offsetY + (colorTableIndex / 8);
+                    final int tmp = colorTable64[colorTableIndex];
+                    final byte value = (byte)(tmp * 255 / 3);
+                    frameBuffer[y * 256 + x] = value;
                 }
             }
         }

@@ -51,16 +51,29 @@ public class Main extends Application {
 
         frame.setVisible(true);
 
+        DrawTask drawTask = new DrawTask(w, h);
+
+        final int[] count = {0};
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                system.systemExecute();
-                canvas.screenBuffer = DrawTask.refreshFrameBuffer(system, w, h);
-                canvas.paint(canvas.getGraphics());
+                if( count[0] == 0 ) {
+                    system.ppu.ppuReg[2] = (byte)(system.ppu.ppuReg[2] | 0x80); // TODO: 暫定処理
+                    count[0] = (count[0] + 1) % 500;
+                    system.systemExecute();
+                    system.ppu.nextStep();
+                    canvas.screenBuffer = drawTask.refreshFrameBuffer(system, w, h);
+                    canvas.paint(canvas.getGraphics());
+                }
+                else {
+                    system.ppu.ppuReg[2] = (byte)(system.ppu.ppuReg[2] & 0x7F); // TODO: 暫定処理
+                    count[0] = (count[0] + 1) % 500;
+                    system.systemExecute();
+                }
             }
         };
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(task, 1000, 50);
+        timer.scheduleAtFixedRate(task, 1000, 10);
 
     }
 
