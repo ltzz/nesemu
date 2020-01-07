@@ -9,8 +9,7 @@ public final class DrawTask {
         tmpRGB = new int[w * h];
     }
 
-    public BufferedImage refreshFrameBuffer(NESSystem system, int w, int h){
-        BufferedImage bufferedImage = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+    public BufferedImage refreshFrameBuffer(NESSystem system, int w, int h, BufferedImage bufferedImage){
         int[] tmpRGB = new int[w * h];
         try {
 

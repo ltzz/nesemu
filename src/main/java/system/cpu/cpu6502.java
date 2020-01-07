@@ -489,7 +489,7 @@ public final class cpu6502 {
 
     public void interpret(byte opcode){
         byte immediate;
-        System.out.println(Integer.toHexString(opcode & 0xFF));
+        // System.out.println(Integer.toHexString(opcode & 0xFF));
 
         int opcodeInt = opcode & 0xFF;
         switch(opcodeInt){
@@ -543,6 +543,10 @@ public final class cpu6502 {
                 break;
             case 0xA0://LDY(Immediate):メモリからYにロード(2バイト/2サイクル)
                 opLDY(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0xA4://LDY(ZeroPage):メモリからYにロード(2バイト/3サイクル)
+                opLDY(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
             case 0xAC://LDY(Absolute):メモリからAにロード(3バイト/4サイクル)
@@ -768,6 +772,9 @@ public final class cpu6502 {
             case 0xD8: // CLD ファミコン用6502では命令なし
             case 0xF8: // SED ファミコン用6502では命令なし
                 programCounter += 1;
+                break;
+            default:
+                System.out.println(Integer.toHexString(opcode & 0xFF));
                 break;
         }
     }

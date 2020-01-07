@@ -1,20 +1,12 @@
 import javafx.application.Application;
-import javafx.scene.canvas.GraphicsContext;
-import javafx.scene.image.PixelFormat;
-import javafx.scene.image.PixelReader;
 import javafx.stage.Stage;
 import system.DrawTask;
 import system.NESSystem;
+import ui.DebugWindow;
+import ui.MainWindow;
 
-import javax.imageio.ImageIO;
-import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.nio.ByteBuffer;
-import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -35,21 +27,8 @@ public class Main extends Application {
     public static void run() {
         NESSystem system = new NESSystem();
 
-        JFrame frame = new JFrame("testNES");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        frame.setSize(w, h);
-        frame.setLocationRelativeTo(null);
-
-        ScreenCanvas canvas = new ScreenCanvas(system);
-
-        JPanel pane = new JPanel();
-        frame.getContentPane().add(pane);
-
-        canvas.setPreferredSize(new Dimension(w, h));
-        pane.add(canvas);
-
-        frame.setVisible(true);
+        MainWindow mainWindow = new MainWindow();
+        DebugWindow debugWindow = new DebugWindow();
 
         DrawTask drawTask = new DrawTask(w, h);
 
@@ -62,8 +41,8 @@ public class Main extends Application {
                     count[0] = (count[0] + 1) % 3;
                     system.systemExecute();
                     system.ppu.nextStep();
-                    canvas.screenBuffer = drawTask.refreshFrameBuffer(system, w, h);
-                    canvas.paint(canvas.getGraphics());
+                    drawTask.refreshFrameBuffer(system, w, h, mainWindow.screenBuffer);
+                    mainWindow.refreshCanvas();
                 }
                 else {
                     system.ppu.ppuReg[2] = (byte)(system.ppu.ppuReg[2] & 0x7F); // TODO: 暫定処理
@@ -80,13 +59,11 @@ public class Main extends Application {
     }
 
 
-    static class ScreenCanvas extends Canvas {
+    static final class ScreenCanvas extends Canvas {
 
         public BufferedImage screenBuffer = null;
-        NESSystem system;
 
-        public ScreenCanvas(NESSystem system) {
-            this.system = system;
+        public ScreenCanvas() {
             // キャンバスの背景を白に設定
             // setBackground(Color.white);
         }
