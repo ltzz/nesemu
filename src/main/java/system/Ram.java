@@ -28,7 +28,11 @@ public final class Ram {
         }
         else if (address < 0x2008){
             // ppu i/o
-            if(address == 0x2006 || address == 0x2007){
+            if(address == 0x2006){
+                ppu.IOAccess();
+            }
+            else if(address == 0x2007){
+                ppu.readPPUData();
                 ppu.IOAccess();
             }
         }
@@ -78,7 +82,10 @@ public final class Ram {
                 ppu.writePpuAddr();
             }
             else if(address == 0x2007) {
-                ppu.writePpuData();
+                ppu.writePPUData();
+            }
+            else if( address == 0x2003 ){
+                final int a = 1;
             }
             else if( address == 0x2004 ){
                 final int a = 1;
@@ -86,6 +93,8 @@ public final class Ram {
             else if( address == 0x2005 ){
                 final int a = 1;
             }
+        } else if( address == 0x4014 ){
+            ppu.spriteDMA(value, wram);
         }
     }
 }

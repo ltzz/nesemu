@@ -10,7 +10,7 @@ public final class NESSystem {
     cpu6502 cpu;
     public Ppu ppu;
     public Ram ram;
-    public byte[] frameBuffer = new byte[256*240];
+    public int[] frameBuffer = new int[256*240];
 
     public NESSystem(){
         rom = new Rom("./sample1.nes"); // FIXME: 一旦ハードコード
@@ -18,6 +18,7 @@ public final class NESSystem {
         ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu, rom);
         ppu.ppuCHR_ROM = rom.CHR_ROM;
+        ppu.refleshColorTables();
         cpu = new cpu6502(ram);
 
         reset();

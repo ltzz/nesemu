@@ -24,7 +24,7 @@ public final class Rom {
             int CHR_ROM_sizeKB = rom[5] * 8;
             int mirroring = rom[6] & 0x01;
 
-            PRG_ROM_SIZE = PRG_ROM_sizeKB* 1024;
+            PRG_ROM_SIZE = PRG_ROM_sizeKB * 1024;
 
             byte[] tmpRom = Arrays.copyOfRange(rom, 0x10, 0x10 + PRG_ROM_sizeKB * 1024);
             if(mirroring > 0){

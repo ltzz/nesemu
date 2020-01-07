@@ -21,7 +21,7 @@ import java.util.TimerTask;
 
 public class Main extends Application {
 
-    static int w = 400, h = 400;
+    static int w = 400, h = 500;
 
     public static void main(String[] args) {
         launch(args);
@@ -59,7 +59,7 @@ public class Main extends Application {
             public void run() {
                 if( count[0] == 0 ) {
                     system.ppu.ppuReg[2] = (byte)(system.ppu.ppuReg[2] | 0x80); // TODO: 暫定処理
-                    count[0] = (count[0] + 1) % 500;
+                    count[0] = (count[0] + 1) % 3;
                     system.systemExecute();
                     system.ppu.nextStep();
                     canvas.screenBuffer = drawTask.refreshFrameBuffer(system, w, h);
@@ -67,8 +67,10 @@ public class Main extends Application {
                 }
                 else {
                     system.ppu.ppuReg[2] = (byte)(system.ppu.ppuReg[2] & 0x7F); // TODO: 暫定処理
-                    count[0] = (count[0] + 1) % 500;
-                    system.systemExecute();
+                    count[0] = (count[0] + 1) % 3;
+                    for(int i = 0; i< 5000; ++i) {
+                        system.systemExecute();
+                    }
                 }
             }
         };

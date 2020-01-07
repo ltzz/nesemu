@@ -49,9 +49,17 @@ public final class cpu6502 {
     void setFlagZ(boolean value){
         setP(value, 1);
     }
+    boolean getFlagZ(){
+        final boolean zeroFlag = !((regP & 0x02) == 0);
+        return zeroFlag;
+    }
 
     void setFlagC(boolean value){
         setP(value, 0);
+    }
+    boolean getFlagC(){
+        final boolean carryFlag = !((regP & 0x01) == 0);
+        return carryFlag;
     }
 
     void setFlagV(boolean value){
@@ -103,14 +111,16 @@ public final class cpu6502 {
                 break;
             case Indirect:
                 immediate16 = getIm16();
-                tmpAddress = ram.getRAMValue(immediate16);
-                address = ram.getRAMValue(tmpAddress);
+                tmpAddress = ram.getRAMValue16(immediate16);
+                address = tmpAddress;
                 break;
             case IndirectX:
-                address = ram.getRAMValue((getIm8() & 0xFF) + (regX & 0xFF));
+                tmpAddress = (getIm8() & 0xFF) + (regX & 0xFF);
+                address = ram.getRAMValue16(tmpAddress);
                 break;
             case Indirect_Y:
-                address = ram.getRAMValue((getIm8() & 0xFF)) + (regY & 0xFF);
+                tmpAddress = (getIm8() & 0xFF);
+                address = ram.getRAMValue16(tmpAddress) + (regY & 0xFF);
                 break;
         }
         return address;
@@ -176,30 +186,46 @@ public final class cpu6502 {
         evalNZ(regA);
         regX = regA;
     }
+    void opTXA(){
+        evalNZ(regX);
+        regA = regX;
+    }
+    void opTYA(){
+        evalNZ(regY);
+        regA = regY;
+    }
     void opTAY(){
         evalNZ(regA);
         regY = regA;
     }
 
-    void opCPXIm(){
-        evalNZ(regX); // TODO: フラグ要確認
-        if( regX > getIm8() ) { // TODO: 比較順序要確認
-            setFlagC(true);
-        }
-        // Xと即値を比較
+    void opCPX(Addressing addressing){
+        byte value = getOperand(addressing);
+        setRegAtCompare(regX, value);
     }
 
-    void opCMPZeropage(){
-        int zeroPageData = ram.getRAMValue(getIm8() & 0xFF );
-        if( regA >= zeroPageData ) {
+    void opCMP(Addressing addressing){
+        byte value = getOperand(addressing);
+        setRegAtCompare(regA, value);
+    }
+
+    void setRegAtCompare(byte reg, byte value){
+        final int regValue = reg & 0xFF;
+        final int targetValue = value & 0xFF;
+        if( regValue >= targetValue ) {
             setFlagC(true);
         }else{
             setFlagC(false);
         }
-        if( regA == zeroPageData ) {
+        if( regValue == targetValue ) {
             setFlagZ(true);
         }else{
             setFlagZ(false);
+        }
+        if( regValue < targetValue ) {
+            setFlagN(true);
+        }else{
+            setFlagN(false);
         }
     }
 
@@ -226,6 +252,22 @@ public final class cpu6502 {
         }
     }
 
+
+    void opAND(Addressing addressing) {
+        final byte value = getOperand(addressing);
+        final int resultValue = regA & value;
+        regA = (byte)(resultValue);
+        evalNZ(regA);
+    }
+
+    void opEOR(Addressing addressing) {
+        final byte value = getOperand(addressing);
+        final int resultValue = regA ^ value;
+        regA = (byte)(resultValue);
+        evalNZ(regA);
+    }
+
+
     void opADC(Addressing addressing) {
         final byte value = getOperand(addressing);
         final int carry = regP & 0x01;
@@ -237,6 +279,21 @@ public final class cpu6502 {
         }
         else{
             setFlagC(false);
+        }
+    }
+
+    void opSBC(Addressing addressing) {
+        final byte value = getOperand(addressing);
+        final int carry = regP & 0x01;
+        final int notCarry = carry > 0 ? 0 : 1;
+        final int resultValue = (regA & 0xFF) - value - notCarry;
+        regA = (byte)(resultValue);
+        evalNZ(value);
+        if( resultValue < 0 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(false);
+        }
+        else{
+            setFlagC(true);
         }
     }
 
@@ -273,9 +330,17 @@ public final class cpu6502 {
     }
 
     void opINC(Addressing addressing){
-        final int address = getIm8() & 0xFF;
+        final int address = getOperandAddress(addressing);
         byte value = ram.getRAMValue(address);
         value = (byte)(value + 1);
+        ram.setRAMValue(address, value);
+        evalNZ(value);
+    }
+
+    void opDEC(Addressing addressing){
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
+        value = (byte)(value - 1);
         ram.setRAMValue(address, value);
         evalNZ(value);
     }
@@ -297,6 +362,9 @@ public final class cpu6502 {
 
     void opCLC(){
         regP = (byte)(regP & 0xFE);
+    }
+    void opSEC(){
+        regP = (byte)(regP | 0x01);
     }
 
     void opSTA(Addressing addressing){
@@ -328,7 +396,7 @@ public final class cpu6502 {
     }
 
     void opBNE(){
-        final boolean zeroFlag = !((regP & 0x02) == 0);
+        final boolean zeroFlag = getFlagZ();
         if( !zeroFlag ){
             final int relative = getIm8();
             programCounter = programCounter + relative;
@@ -342,14 +410,21 @@ public final class cpu6502 {
         }
     }
     void opBCC(){
-        final boolean carryFlag = !((regP & 0x01) == 0);
+        final boolean carryFlag = getFlagC();
         if( !carryFlag ){
             final int relative = getIm8();
             programCounter = programCounter + relative;
         }
     }
+    void opBCS(){
+        final boolean carryFlag = getFlagC();
+        if( carryFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
     void opBEQ(){
-        final boolean zeroFlag = !((regP & 0x02) == 0);
+        final boolean zeroFlag = getFlagZ();
         if( zeroFlag ){
             final int relative = getIm8();
             programCounter = programCounter + relative;
@@ -358,9 +433,9 @@ public final class cpu6502 {
 
     void opJSR(){
         final int absolute = getIm16();
-        final int toStackValue = programCounter + 2; // この命令の最後のアドレスをpush
-        final byte upper = (byte)((toStackValue >> 8) & 0xFF);
-        final byte lower = (byte)(toStackValue & 0xFF);
+        final int returnAddress = programCounter + 2; // この命令の最後のアドレスをpush
+        final byte upper = (byte)((returnAddress >> 8) & 0xFF);
+        final byte lower = (byte)(returnAddress & 0xFF);
         final int stackAddress = 0x100 + (regS & 0xFF);
         ram.setRAMValue(stackAddress, upper);
         ram.setRAMValue(stackAddress- 1, lower);
@@ -474,6 +549,10 @@ public final class cpu6502 {
                 opLDY(Addressing.Absolute);
                 programCounter += 3;
                 break;
+            case 0xBC://LDY(Absolute, X):メモリからAにロード(3バイト/4サイクル)
+                opLDY(Addressing.AbsoluteX);
+                programCounter += 3;
+                break;
             case 0x85://STA(Zeropage):Aからメモリにストア(2バイト/3サイクル)
                 opSTA(Addressing.ZeroPage);
                 programCounter += 2;
@@ -519,21 +598,49 @@ public final class cpu6502 {
                 opTAX();
                 programCounter++;
                 break;
+            case 0x8A:
+                opTXA();
+                programCounter++;
+                break;
+            case 0x98:
+                opTYA();
+                programCounter++;
+                break;
             case 0xA8:
                 opTAY();
                 programCounter++;
                 break;
             case 0xE0:
-                opCPXIm();
+                opCPX(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0xE4:
+                opCPX(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
             case 0xC5:
-                opCMPZeropage();
+                opCMP(Addressing.ZeroPage);
                 programCounter += 2;
+                break;
+            case 0xC9:
+                opCMP(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0xCD:
+                opCMP(Addressing.Absolute);
+                programCounter += 3;
                 break;
             case 0x2C:
                 opBITAbs();
                 programCounter += 3;
+                break;
+            case 0x29:
+                opAND(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0x49:
+                opEOR(Addressing.Immediate);
+                programCounter += 2;
                 break;
             case 0x69:
                 opADC(Addressing.Immediate);
@@ -542,6 +649,18 @@ public final class cpu6502 {
             case 0x65:
                 opADC(Addressing.ZeroPage);
                 programCounter += 2;
+                break;
+            case 0xE9:
+                opSBC(Addressing.Immediate);
+                programCounter += 2;
+                break;
+            case 0xE5:
+                opSBC(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0xED:
+                opSBC(Addressing.Absolute);
+                programCounter += 3;
                 break;
             case 0x06:
                 opASL(Addressing.ZeroPage);
@@ -563,6 +682,14 @@ public final class cpu6502 {
                 opINC(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
+            case 0xEE: // (3バイト/6サイクル)
+                opINC(Addressing.Absolute);
+                programCounter += 3;
+                break;
+            case 0xFE: // (3バイト/7サイクル)
+                opINC(Addressing.AbsoluteX);
+                programCounter += 3;
+                break;
             case 0xCA:
                 opDEX();
                 programCounter++;
@@ -570,6 +697,14 @@ public final class cpu6502 {
             case 0x88:
                 opDEY();
                 programCounter++;
+                break;
+            case 0xC6:
+                opDEC(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0xDE:
+                opDEC(Addressing.AbsoluteX);
+                programCounter += 3;
                 break;
             case 0xD0:
                 opBNE();
@@ -581,6 +716,10 @@ public final class cpu6502 {
                 break;
             case 0x90:
                 opBCC();
+                programCounter += 2;
+                break;
+            case 0xB0:
+                opBCS();
                 programCounter += 2;
                 break;
             case 0xF0:
@@ -614,6 +753,10 @@ public final class cpu6502 {
                 opJMP_Abs();
                 //programCounter += 3;// FIXME: pcインクリメントしないといかん気がする→確認
                 break;
+            case 0x38:
+                opSEC();
+                programCounter++;
+                break;
             case 0x18:
                 opCLC();
                 programCounter++;
@@ -623,6 +766,7 @@ public final class cpu6502 {
                 programCounter++;
                 break;
             case 0xD8: // CLD ファミコン用6502では命令なし
+            case 0xF8: // SED ファミコン用6502では命令なし
                 programCounter += 1;
                 break;
         }
