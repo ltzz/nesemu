@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 
-public final class DebugWindow {
+public final class DebugWindow extends JFrame {
     public BufferedImage screenBuffer;
     private ScreenCanvas canvas;
 
@@ -25,12 +25,12 @@ public final class DebugWindow {
         }
     }
 
-    public DebugWindow(){
-        final int windowWidth = 256;
-        final int windowHeight = 100;
-        JFrame frame = new JFrame("Debug Window");
-        frame.setSize(windowWidth,windowHeight);
-        frame.setLocationRelativeTo(null);
+    public DebugWindow(String title, int windowWidth, int windowHeight){
+        super("Debug Window");
+        setSize(windowWidth,windowHeight);
+        setResizable(false);
+        setLocationRelativeTo(null);
+
 
         BufferedImage screenBuffer = new BufferedImage(windowWidth, windowHeight, BufferedImage.TYPE_INT_RGB);
         this.screenBuffer = screenBuffer;
@@ -38,11 +38,11 @@ public final class DebugWindow {
         this.canvas = canvas;
 
         JPanel pane = new JPanel();
-        frame.getContentPane().add(pane);
+        getContentPane().add(pane);
 
         canvas.setPreferredSize(new Dimension(windowWidth, windowHeight));
         pane.add(canvas);
 
-        frame.setVisible(true);
+        setVisible(true);
     }
 }

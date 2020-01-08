@@ -1,5 +1,6 @@
 package system;
 
+import system.joypad.JoyPad;
 import system.ppu.Ppu;
 import system.rom.Rom;
 
@@ -10,11 +11,13 @@ public final class Ram {
     public byte[] PRG_ROM;
     public byte[] CHR_ROM;
     int PRG_ROM_SIZE;
+    JoyPad joyPad;
 
-    public Ram(Ppu ppu, Rom rom) {
+    public Ram(Ppu ppu, Rom rom, JoyPad joyPad) {
         wram = new byte[0x800];
         this.ppu = ppu;
         apuIoReg = new byte[0x020];
+        this.joyPad = joyPad;
 
         PRG_ROM = rom.PRG_ROM;
         CHR_ROM = rom.CHR_ROM;
@@ -41,6 +44,11 @@ public final class Ram {
         }
         else if (address < 0x4020){
             // apu i/o, pad
+            if( address == 0x4016 ){
+                byte value = 0;
+                value |= joyPad.buttonReadFromIO() ? 0x01 : 0x00;
+                return value;
+            }
         }
         else if (address < 0x6000){
             // exrom
@@ -95,6 +103,8 @@ public final class Ram {
             }
         } else if( address == 0x4014 ){
             ppu.spriteDMA(value, wram);
+        } else if( address == 0x4016 ){
+            joyPad.buttonResetFromIO();
         }
     }
 }
