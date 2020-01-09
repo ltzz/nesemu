@@ -45,6 +45,10 @@ public final class cpu6502 {
     void setFlagN(boolean value){
         setP(value, 7);
     }
+    boolean getFlagN(){
+        final boolean negativeFlag = !((regP & 0x80) == 0);
+        return negativeFlag;
+    }
 
     void setFlagZ(boolean value){
         setP(value, 1);
@@ -64,6 +68,10 @@ public final class cpu6502 {
 
     void setFlagV(boolean value){
         setP(value, 6);
+    }
+    boolean getFlagV(){
+        final boolean overflowFlag = !((regP & 0x40) == 0);
+        return overflowFlag;
     }
 
     private void setP(boolean flag, int bitpos){
@@ -229,9 +237,9 @@ public final class cpu6502 {
         }
     }
 
-    void opBITAbs(){
-        final int absolute = getIm16();
-        byte value = ram.getRAMValue(absolute);
+    void opBIT(Addressing addressing){
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
         if( (value & 0x80) > 0 ){
             setFlagN(true);
         }
@@ -419,6 +427,27 @@ public final class cpu6502 {
     void opBCS(){
         final boolean carryFlag = getFlagC();
         if( carryFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBVS(){
+        final boolean overflowFlag = getFlagV();
+        if( overflowFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBVC(){
+        final boolean overflowFlag = getFlagV();
+        if( !overflowFlag ){
+            final int relative = getIm8();
+            programCounter = programCounter + relative;
+        }
+    }
+    void opBMI(){
+        final boolean negativeFlag = getFlagN();
+        if( negativeFlag ){
             final int relative = getIm8();
             programCounter = programCounter + relative;
         }
@@ -635,8 +664,12 @@ public final class cpu6502 {
                 programCounter += 3;
                 break;
             case 0x2C:
-                opBITAbs();
+                opBIT(Addressing.Absolute);
                 programCounter += 3;
+                break;
+            case 0x24:
+                opBIT(Addressing.ZeroPage);
+                programCounter += 2;
                 break;
             case 0x29:
                 opAND(Addressing.Immediate);
@@ -664,6 +697,10 @@ public final class cpu6502 {
                 break;
             case 0xED:
                 opSBC(Addressing.Absolute);
+                programCounter += 3;
+                break;
+            case 0xFD:
+                opSBC(Addressing.AbsoluteX);
                 programCounter += 3;
                 break;
             case 0x06:
@@ -706,6 +743,10 @@ public final class cpu6502 {
                 opDEC(Addressing.ZeroPage);
                 programCounter += 2;
                 break;
+            case 0xCE:
+                opDEC(Addressing.Absolute);
+                programCounter += 3;
+                break;
             case 0xDE:
                 opDEC(Addressing.AbsoluteX);
                 programCounter += 3;
@@ -724,6 +765,18 @@ public final class cpu6502 {
                 break;
             case 0xB0:
                 opBCS();
+                programCounter += 2;
+                break;
+            case 0x70:
+                opBVS();
+                programCounter += 2;
+                break;
+            case 0x50:
+                opBVC();
+                programCounter += 2;
+                break;
+            case 0x30:
+                opBMI();
                 programCounter += 2;
                 break;
             case 0xF0:
