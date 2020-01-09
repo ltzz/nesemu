@@ -72,11 +72,15 @@ public final class Ppu {
         System.arraycopy(cpuRam, ((addressUpper & 0xFF) << 8), ppuOAM, 0, 0x100);
     }
 
-    public void refleshColorTables(){
+    public void refreshColorTables(){
         final int bgOffsetAddr = ((ppuReg[0] & 0x10) > 0) ? 0x1000 : 0;
         final int spOffsetAddr = ((ppuReg[0] & 0x08) > 0) ? 0x1000 : 0;
         for(int tileId=0; tileId < 0x100; ++tileId){
             final int tileIdOffsetAddress = tileId * 16;
+
+            for(int index = 0; index < 64; ++index){ // 初期化
+                bgColorTables[tileId][index] = 0x00;
+            }
 
             for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
                 final byte chrValue = ppuCHR_ROM[bgOffsetAddr + tileIdOffsetAddress + chrIndex];
@@ -97,6 +101,10 @@ public final class Ppu {
         }
         for(int tileId=0; tileId < 0x100; ++tileId){
             final int tileIdOffsetAddress = tileId * 16;
+
+            for(int index = 0; index < 64; ++index){ // 初期化
+                spColorTables[tileId][index] = 0x00;
+            }
 
             for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
                 final byte chrValue = ppuCHR_ROM[spOffsetAddr + tileIdOffsetAddress + chrIndex];
@@ -174,10 +182,10 @@ public final class Ppu {
             final int areaY = 2 * attributeTableY;
             final int attributeTableX = attributeTableAddr % 8;
             final int areaX = 2 * attributeTableX;
-            areaAttribute[areaY * 16 + areaX] = (byte)topLeft;
-            areaAttribute[areaY * 16 + areaX + 1] = (byte)topRight;
-            areaAttribute[(areaY + 1) * 16 + areaX] = (byte)bottomLeft;
-            areaAttribute[(areaY + 1) * 16 + areaX + 1] = (byte)bottomRight;
+            areaAttribute[areaY * 8 + areaX] = (byte)topLeft;
+            areaAttribute[areaY * 8 + areaX + 1] = (byte)topRight;
+            areaAttribute[(areaY + 1) * 8 + areaX] = (byte)bottomLeft;
+            areaAttribute[(areaY + 1) * 8 + areaX + 1] = (byte)bottomRight;
         }
 
         // BG描画
@@ -240,6 +248,7 @@ public final class Ppu {
     }
 
     public void nextStep(){
+        refreshColorTables();
         draw();
     }
 }

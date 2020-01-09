@@ -21,7 +21,7 @@ public final class NESSystem {
         ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu, rom, joyPad);
         ppu.ppuCHR_ROM = rom.CHR_ROM;
-        ppu.refleshColorTables();
+        ppu.refreshColorTables();
         cpu = new cpu6502(ram);
 
         reset();
