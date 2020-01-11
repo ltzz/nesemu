@@ -1,5 +1,7 @@
 package system.ppu;
 
+import java.util.Arrays;
+
 public final class Ppu {
     public byte[] ppuRam;
     public byte[] ppuOAM;
@@ -10,7 +12,7 @@ public final class Ppu {
     public int[] frameBuffer;
     public final byte[][] bgColorTables = new byte[0x1000][64];
     public final byte[][] spColorTables = new byte[0x1000][64];
-
+    public byte timing = 0; // TODO: 正式なScanline変数にする
     // TODO: PPURAMWrite作る ミラー領域とかの考慮のため
 
     public Ppu(int[] frameBuffer){
@@ -22,8 +24,10 @@ public final class Ppu {
     }
 
     public void IOAccess(){
-        System.out.println("ppu_addr " + Integer.toHexString(ppuAddr));
-        System.out.println("ppu_data " + Integer.toHexString(ppuReg[7] & 0xFF));
+        if( false ) {
+            System.out.println("ppu_addr " + Integer.toHexString(ppuAddr));
+            System.out.println("ppu_data " + Integer.toHexString(ppuReg[7] & 0xFF));
+        }
     }
 
     public void writePpuAddr(){
@@ -78,9 +82,8 @@ public final class Ppu {
         for(int tileId=0; tileId < 0x100; ++tileId){
             final int tileIdOffsetAddress = tileId * 16;
 
-            for(int index = 0; index < 64; ++index){ // 初期化
-                bgColorTables[tileId][index] = 0x00;
-            }
+            // 初期化
+            Arrays.fill(bgColorTables[tileId], (byte) 0x00);
 
             for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
                 final byte chrValue = ppuCHR_ROM[bgOffsetAddr + tileIdOffsetAddress + chrIndex];
@@ -102,9 +105,8 @@ public final class Ppu {
         for(int tileId=0; tileId < 0x100; ++tileId){
             final int tileIdOffsetAddress = tileId * 16;
 
-            for(int index = 0; index < 64; ++index){ // 初期化
-                spColorTables[tileId][index] = 0x00;
-            }
+            // 初期化
+            Arrays.fill(spColorTables[tileId], (byte) 0x00);
 
             for(int chrIndex = 0; chrIndex < 8; chrIndex++){ // 前半
                 final byte chrValue = ppuCHR_ROM[spOffsetAddr + tileIdOffsetAddress + chrIndex];
@@ -169,6 +171,7 @@ public final class Ppu {
         final int startAddr = 0x2000 + (mainScreen * 0x400);
         final int endAddr = 0x2400 + (mainScreen * 0x400) - 0x100; // TODO: 後で治す
 
+        Arrays.fill(frameBuffer, 0);
 
         final int attributeTableStartAddr = startAddr + 0x3C0;
         final byte[] areaAttribute = new byte[16*16]; // 各16x16pixelの画面領域で使うパレット
@@ -250,5 +253,12 @@ public final class Ppu {
     public void nextStep(){
         refreshColorTables();
         draw();
+        timing = (byte)((timing + 1) % 256);
+        if((timing & 0xFF) >= 240){
+            ppuReg[2] = (byte)(ppuReg[2] | 0x80); // TODO: 暫定処理
+        }
+        else {
+            ppuReg[2] = (byte)(ppuReg[2] & 0x7F); // TODO: 暫定処理
+        }
     }
 }

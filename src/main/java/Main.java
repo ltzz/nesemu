@@ -35,14 +35,12 @@ public class Main extends Application {
             @Override
             public void run() {
                 if (count[0] == 0) {
-                    system.ppu.ppuReg[2] = (byte) (system.ppu.ppuReg[2] | 0x80); // TODO: 暫定処理
                     count[0] = (count[0] + 1) % 3;
                     system.systemExecute();
                     system.ppu.nextStep();
                     drawTask.refreshFrameBuffer(system, w, h, mainWindow.screenBuffer);
                     mainWindow.refreshCanvas();
                 } else {
-                    system.ppu.ppuReg[2] = (byte) (system.ppu.ppuReg[2] & 0x7F); // TODO: 暫定処理
                     count[0] = (count[0] + 1) % 3;
                     for (int i = 0; i < 5000; ++i) {
                         system.systemExecute();

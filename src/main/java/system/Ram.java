@@ -31,7 +31,10 @@ public final class Ram {
         }
         else if (address < 0x2008){
             // ppu i/o
-            if(address == 0x2006){
+            if(address == 0x2002){
+                return ppu.ppuReg[2];
+            }
+            else if(address == 0x2006){
                 ppu.IOAccess();
             }
             else if(address == 0x2007){
