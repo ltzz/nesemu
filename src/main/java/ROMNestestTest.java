@@ -13,7 +13,7 @@ public final class ROMNestestTest {
             FileReader fileReader = new FileReader(logfile);
             BufferedReader bufferedReader = new BufferedReader(fileReader);
             system.cpu.programCounter = 0xC000;
-            for (int i = 0; i < 1000; ++i) {
+            for (int i = 0; i < 5000; ++i) {
                 String logProgramCounter = bufferedReader.readLine().split("\\s")[0];
                 String nowProgramCounter = String.format("%04X", system.cpu.programCounter);
                 if(!logProgramCounter.equals(nowProgramCounter)){

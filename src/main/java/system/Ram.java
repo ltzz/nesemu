@@ -72,10 +72,27 @@ public final class Ram {
 
     public int getRAMValue16(int address){
         int lower, upper;
-        int value;
-        lower = getRAMValue(address + 0) & 0xFF;
-        upper = getRAMValue(address + 1) & 0xFF;
-        value = (upper << 8) | lower;
+        lower = getRAMValue((address + 0) & 0xFFFF) & 0xFF;
+        upper = getRAMValue((address + 1) & 0xFFFF) & 0xFF;
+        final int value = (upper << 8) | lower;
+        return value;
+    }
+
+
+    public int getRAMValueInPage(int address){
+        int lower, upper;
+        int page = address >> 8;
+        lower = getRAMValue((page << 8) | ((address + 0) & 0xFF)) & 0xFF;
+        upper = getRAMValue((page << 8) | ((address + 1) & 0xFF)) & 0xFF;
+        final int value = (upper << 8) | lower;
+        return value;
+    }
+
+    public int getRAMValue16ByAddress8(int address){
+        int lower, upper;
+        lower = getRAMValue((address + 0) & 0xFF) & 0xFF;
+        upper = getRAMValue((address + 1) & 0xFF) & 0xFF;
+        final int value = (upper << 8) | lower;
         return value;
     }
 
