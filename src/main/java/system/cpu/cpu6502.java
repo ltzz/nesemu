@@ -240,6 +240,20 @@ public final class cpu6502 {
         setRegAtCompare(regA, value);
     }
 
+    void opDCM(Addressing addressing){
+        byte value = getOperand(addressing);
+        byte resultValue = (byte)(value - 1);
+        ram.setRAMValue(getOperandAddress(addressing), resultValue);
+        setRegAtCompare(regA, resultValue);
+    }
+
+    void opISC(Addressing addressing){
+        byte value = getOperand(addressing);
+        byte resultValue = (byte)(value + 1);
+        ram.setRAMValue(getOperandAddress(addressing), resultValue);
+        calcAndSetRegSBC(resultValue);
+    }
+
     void setRegAtCompare(byte reg, byte value){
         final int regValue = reg & 0xFF;
         final int targetValue = value & 0xFF;
@@ -329,6 +343,10 @@ public final class cpu6502 {
 
     void opSBC(Addressing addressing) {
         final byte value = getOperand(addressing);
+        calcAndSetRegSBC(value);
+    }
+
+    void calcAndSetRegSBC(byte value){
         final int carry = regP & 0x01;
         final int notCarry = carry > 0 ? 0 : 1;
         final int resultValue = (regA & 0xFF) - value - notCarry;
@@ -518,6 +536,9 @@ public final class cpu6502 {
     void opSTY(Addressing addressing){
         ram.setRAMValue(getOperandAddress(addressing), regY);
     }
+    void opSAX(Addressing addressing){
+        ram.setRAMValue(getOperandAddress(addressing), (byte)(regA & regX));
+    }
 
     void opLDA(Addressing addressing){
 //        System.out.println("LDA " + "getIm8()=" + getIm8() + " " + getOperandAddress(addressing) + " " + getOperand(addressing));
@@ -534,6 +555,12 @@ public final class cpu6502 {
         final byte operand = getOperand(addressing);
         evalNZ(operand);
         regY = operand;
+    }
+    void opLAX(Addressing addressing){
+        final byte operand = getOperand(addressing);
+        evalNZ(operand);
+        regA = operand;
+        regX = operand;
     }
 
     void opBNE(){
@@ -672,7 +699,11 @@ public final class cpu6502 {
 
     public void interpret(byte opcode){
         byte immediate;
-        // System.out.println(Integer.toHexString(opcode & 0xFF));
+        if( false ) {
+            System.out.println(Integer.toHexString(opcode & 0xFF)
+                + String.format(" %04X", getIm16())
+            );
+        }
 
         int opcodeInt = opcode & 0xFF;
         switch(opcodeInt){
@@ -752,6 +783,30 @@ public final class cpu6502 {
                 opLDY(Addressing.AbsoluteX);
                 programCounter += 3;
                 break;
+            case 0xA7: // LAX ※拡張命令
+                opLAX(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0xB7: // LAX ※拡張命令
+                opLAX(Addressing.ZeroPageY);
+                programCounter += 2;
+                break;
+            case 0xAF: // LAX ※拡張命令
+                opLAX(Addressing.Absolute);
+                programCounter += 3;
+                break;
+            case 0xBF: // LAX ※拡張命令
+                opLAX(Addressing.AbsoluteY);
+                programCounter += 3;
+                break;
+            case 0xA3: // LAX ※拡張命令
+                opLAX(Addressing.IndirectX);
+                programCounter += 2;
+                break;
+            case 0xB3: // LAX ※拡張命令
+                opLAX(Addressing.Indirect_Y);
+                programCounter += 2;
+                break;
             case 0x85://STA(Zeropage):Aからメモリにストア(2バイト/3サイクル)
                 opSTA(Addressing.ZeroPage);
                 programCounter += 2;
@@ -802,6 +857,22 @@ public final class cpu6502 {
                 break;
             case 0x94://STY(ZeropageX):Yからメモリにストア(2バイト/4サイクル)
                 opSTY(Addressing.ZeroPageX);
+                programCounter += 2;
+                break;
+            case 0x87://SAX ※拡張命令
+                opSAX(Addressing.ZeroPage);
+                programCounter += 2;
+                break;
+            case 0x97://SAX ※拡張命令
+                opSAX(Addressing.ZeroPageY);
+                programCounter += 2;
+                break;
+            case 0x8F://SAX ※拡張命令
+                opSAX(Addressing.Absolute);
+                programCounter += 3;
+                break;
+            case 0x83://SAX ※拡張命令
+                opSAX(Addressing.IndirectX);
                 programCounter += 2;
                 break;
             case 0x9A:
@@ -1268,9 +1339,101 @@ public final class cpu6502 {
                 opCLV();
                 programCounter++;
                 break;
+            case 0xEB: // SBC ※拡張命令
+                opSBC(Addressing.Immediate);
+                programCounter+= 2;
+                break;
+            case 0xC7: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.ZeroPage);
+                programCounter+= 2;
+                break;
+            case 0xD7: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0xCF: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0xDF: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.AbsoluteX);
+                programCounter+= 3;
+                break;
+            case 0xDB: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0xC3: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0xD3: // DCM(DCP) ※拡張命令
+                opDCM(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
+            case 0xE7: // ISC ※拡張命令
+                opISC(Addressing.ZeroPage);
+                programCounter+= 2;
+                break;
+            case 0xF7: // ISC(ISB) ※拡張命令
+                opISC(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0xEF: // ISC(ISB) ※拡張命令
+                opISC(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0xFF: // ISC(ISB) ※拡張命令
+                opISC(Addressing.AbsoluteX);
+                programCounter+= 3;
+                break;
+            case 0xFB: // ISC(ISB) ※拡張命令
+                opISC(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0xE3: // ISC(ISB) ※拡張命令
+                opISC(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0xF3: // ISC(ISB) ※拡張命令
+                opISC(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
             case 0xEA:
                 // NOP
                 programCounter++;
+                break;
+            case 0x1A:
+            case 0x3A:
+            case 0x5A:
+            case 0x7A:
+            case 0xDA:
+            case 0xFA:
+                // 未実装2バイトNOP
+                programCounter += 1;
+                break;
+            case 0x0C:
+            case 0x1C:
+            case 0x3C:
+            case 0x5C:
+            case 0x7C:
+            case 0xDC:
+            case 0xFC:
+                // 未実装3バイトNOP
+                programCounter += 3;
+                break;
+            case 0x04:
+            case 0x44:
+            case 0x64:
+            case 0x14:
+            case 0x34:
+            case 0x54:
+            case 0x74:
+            case 0xD4:
+            case 0xF4:
+            case 0x80:
+                // 未実装2バイトNOP
+                programCounter += 2;
                 break;
             default:
                 System.out.println(Integer.toHexString(opcode & 0xFF));
