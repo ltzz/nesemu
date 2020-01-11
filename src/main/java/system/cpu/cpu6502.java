@@ -35,6 +35,19 @@ public final class cpu6502 {
         regS = (byte)0xFD;
     }
 
+    public byte getRegA(){
+        return regA;
+    }
+    public byte getRegX(){
+        return regX;
+    }
+    public byte getRegY(){
+        return regY;
+    }
+    public byte getRegP(){
+        return regP;
+    }
+
     void setFlagI(boolean value){
         setP(value, 2);
     }
@@ -174,9 +187,9 @@ public final class cpu6502 {
 
     void evalNZ(final byte data){
         if((data & 0xFF) < 128){
-            setFlagN(true);
-        }else{
             setFlagN(false);
+        }else{
+            setFlagN(true);
         }
         if( (data & 0xFF) == 0 ){
             setFlagZ(true);
@@ -187,8 +200,12 @@ public final class cpu6502 {
     }
 
     void opTXS(){
-        evalNZ(regX);
+        evalNZ(regA);
         regS = regX;
+    }
+    void opTSX(){
+        evalNZ(regA);
+        regX = regS;
     }
     void opTAX(){
         evalNZ(regA);
@@ -212,6 +229,11 @@ public final class cpu6502 {
         setRegAtCompare(regX, value);
     }
 
+    void opCPY(Addressing addressing){
+        byte value = getOperand(addressing);
+        setRegAtCompare(regY, value);
+    }
+
     void opCMP(Addressing addressing){
         byte value = getOperand(addressing);
         setRegAtCompare(regA, value);
@@ -230,7 +252,7 @@ public final class cpu6502 {
         }else{
             setFlagZ(false);
         }
-        if( regValue < targetValue ) {
+        if( ((regValue - targetValue) & 0x80) > 0) {
             setFlagN(true);
         }else{
             setFlagN(false);

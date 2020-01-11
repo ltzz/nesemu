@@ -19,6 +19,8 @@ public final class ROMNestestTest {
                 if(!logProgramCounter.equals(nowProgramCounter)){
                     System.out.println((i+1) + " " + nowProgramCounter
                             + " A:" + String.format("%02X", system.cpu.getRegA())
+                            + " X:" + String.format("%02X", system.cpu.getRegX())
+                            + " Y:" + String.format("%02X", system.cpu.getRegY())
                             + " P:" + String.format("%02X", system.cpu.getRegP()));
                 }
                 system.systemExecute();

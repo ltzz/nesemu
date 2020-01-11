@@ -8,15 +8,16 @@ import system.rom.Rom;
 public final class NESSystem {
 
     public Rom rom;
-    cpu6502 cpu;
+    public cpu6502 cpu;
     public Ppu ppu;
     public Ram ram;
     public JoyPad joyPad;
     public int[] frameBuffer = new int[256*240];
 
-    public NESSystem(){
-        rom = new Rom("./sample1.nes"); // FIXME: 一旦ハードコード
-//        rom = new Rom("./SHOOT.nes"); // FIXME: 一旦ハードコード
+    public NESSystem(String romFileName){
+//        rom = new Rom("./palette.nes"); // FIXME: 一旦ハードコード
+//        rom = new Rom("./full_palette.nes"); // FIXME: 一旦ハードコード
+        rom = new Rom(romFileName);
         joyPad = new JoyPad();
         ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu, rom, joyPad);
