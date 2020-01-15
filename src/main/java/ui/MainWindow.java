@@ -19,7 +19,9 @@ public final class MainWindow extends JFrame implements KeyListener {
 
     @Override
     public void keyPressed(KeyEvent keyEvent) {
-        System.out.println("key pressed: " + keyEvent.getKeyCode());
+        if(false) {
+            System.out.println("key pressed: " + keyEvent.getKeyCode());
+        }
         switch ( keyEvent.getKeyCode() ){
             case KeyEvent.VK_J:
                 joyPad.buttonB = true;

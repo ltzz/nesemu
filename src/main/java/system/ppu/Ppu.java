@@ -12,6 +12,7 @@ public final class Ppu {
     public int[] frameBuffer;
     public final byte[][] bgColorTables = new byte[0x1000][64];
     public final byte[][] spColorTables = new byte[0x1000][64];
+    public final byte[] attributeTableCache =  new byte[16 * 16]; // 各16x16pixelの画面領域で使うパレット
     public byte timing = 0; // TODO: 正式なScanline変数にする
     // TODO: PPURAMWrite作る ミラー領域とかの考慮のため
 
@@ -164,17 +165,11 @@ public final class Ppu {
         return convertToRGB24(colorPaletteOctal[color]);
     }
 
-
-    public void draw(){ // TODO: scanlineで処理するように
-        final int blockWidth = (256 / 8);
+    public void refreshAttributeTable(){
         final int mainScreen = ppuReg[0] & 0x03;
         final int startAddr = 0x2000 + (mainScreen * 0x400);
-        final int endAddr = 0x2400 + (mainScreen * 0x400) - 0x100; // TODO: 後で治す
-
-        Arrays.fill(frameBuffer, 0);
-
+        final int endAddr = startAddr + 32 * 30;
         final int attributeTableStartAddr = startAddr + 0x3C0;
-        final byte[] areaAttribute = new byte[16*16]; // 各16x16pixelの画面領域で使うパレット
         for (int attributeTableAddr = attributeTableStartAddr; attributeTableAddr < endAddr; attributeTableAddr++){
             final int value = ppuRam[attributeTableAddr] & 0xFF;
             final int topLeft = value & 0x03;
@@ -185,11 +180,54 @@ public final class Ppu {
             final int areaY = 2 * attributeTableY;
             final int attributeTableX = attributeTableAddr % 8;
             final int areaX = 2 * attributeTableX;
-            areaAttribute[areaY * 8 + areaX] = (byte)topLeft;
-            areaAttribute[areaY * 8 + areaX + 1] = (byte)topRight;
-            areaAttribute[(areaY + 1) * 8 + areaX] = (byte)bottomLeft;
-            areaAttribute[(areaY + 1) * 8 + areaX + 1] = (byte)bottomRight;
+            attributeTableCache[areaY * 8 + areaX] = (byte)topLeft;
+            attributeTableCache[areaY * 8 + areaX + 1] = (byte)topRight;
+            attributeTableCache[(areaY + 1) * 8 + areaX] = (byte)bottomLeft;
+            attributeTableCache[(areaY + 1) * 8 + areaX + 1] = (byte)bottomRight;
         }
+    }
+
+    public void drawScanLine(){
+        final int blockWidth = (256 / 8);
+        final int mainScreen = ppuReg[0] & 0x03;
+        final int startAddr = 0x2000 + (mainScreen * 0x400);
+        final int endAddr = startAddr + 32 * 30;
+        final int startLineAddr = startAddr + timing * 8;
+        final int endLineAddr = startLineAddr + 8;
+
+        refreshAttributeTable();
+
+        // BG描画
+        for(int addr = startLineAddr; addr < endLineAddr; ++addr){
+            final int tileId = ppuRam[addr];
+            if( tileId > 0 ) {
+                final int offsetBlockX = (addr - 0x2000) % blockWidth;
+                final int offsetBlockY = (addr - 0x2000) / blockWidth;
+                final int offsetX = offsetBlockX * 8;
+                final int offsetY = offsetBlockY * 8;
+                for(int colorTableIndex = 0; colorTableIndex < 64; colorTableIndex++){
+                    final int x = offsetX + (colorTableIndex % 8);
+                    final int y = offsetY + (colorTableIndex / 8);
+                    final int attX = offsetX % 16;
+                    final int attY = offsetY / 16;
+                    final int palette = attributeTableCache[attX * 16 + attY];
+                    final int tmp = bgColorTables[tileId][colorTableIndex] & 0xFF;
+                    //final byte value = (byte)(tmp * 255 / 3);
+                    //frameBuffer[y * 256 + x] = convertToGrayscale24(value);
+                    frameBuffer[y * 256 + x] = getColor(getBGColorId(palette, tmp));
+                }
+            }
+        }
+    }
+
+    public void draw(){ // TODO: scanlineで処理するように
+        final int blockWidth = (256 / 8);
+        final int mainScreen = ppuReg[0] & 0x03;
+        final int startAddr = 0x2000 + (mainScreen * 0x400);
+        final int endAddr = startAddr + 32 * 30;
+        Arrays.fill(frameBuffer, 0);
+
+        refreshAttributeTable();
 
         // BG描画
         for(int addr = startAddr; addr < endAddr; ++addr){
@@ -204,7 +242,7 @@ public final class Ppu {
                     final int y = offsetY + (colorTableIndex / 8);
                     final int attX = offsetX % 16;
                     final int attY = offsetY / 16;
-                    final int palette = areaAttribute[attX * 16 + attY];
+                    final int palette = attributeTableCache[attX * 16 + attY];
                     final int tmp = bgColorTables[tileId][colorTableIndex] & 0xFF;
                     //final byte value = (byte)(tmp * 255 / 3);
                     //frameBuffer[y * 256 + x] = convertToGrayscale24(value);
@@ -251,7 +289,23 @@ public final class Ppu {
     }
 
     public void nextStep(){
+        refreshAttributeTable();
         refreshColorTables();
+        draw();
+        timing = (byte)((timing + 1) % 2);
+        if((timing & 0xFF) >= 1){
+            ppuReg[2] = (byte)(ppuReg[2] | 0x80); // TODO: 暫定処理
+        }
+        else {
+            ppuReg[2] = (byte)(ppuReg[2] & 0x7F); // TODO: 暫定処理
+        }
+    }
+
+    public void nextStepWithScanLine(){
+        if(timing == 0) {
+            refreshAttributeTable();
+            refreshColorTables();
+        }
         draw();
         timing = (byte)((timing + 1) % 256);
         if((timing & 0xFF) >= 240){

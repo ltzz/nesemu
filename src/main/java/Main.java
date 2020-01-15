@@ -30,26 +30,21 @@ public class Main extends Application {
 
         DrawTask drawTask = new DrawTask(w, h);
 
-        final int[] count = {0};
+        // debug
+        ROMNestestTest.run();
+
         TimerTask task = new TimerTask() {
             @Override
             public void run() {
-                if (count[0] == 0) {
-                    count[0] = (count[0] + 1) % 3;
+                for (int i = 0; i < 1; ++i) { // TODO: サイクル数計算する
                     system.systemExecute();
-                    system.ppu.nextStep();
-                    drawTask.refreshFrameBuffer(system, w, h, mainWindow.screenBuffer);
-                    mainWindow.refreshCanvas();
-                } else {
-                    count[0] = (count[0] + 1) % 3;
-                    for (int i = 0; i < 5000; ++i) {
-                        system.systemExecute();
-                    }
                 }
+                drawTask.refreshFrameBuffer(system, w, h, mainWindow.screenBuffer);
+                mainWindow.refreshCanvas();
             }
         };
         Timer timer = new Timer();
-        timer.scheduleAtFixedRate(task, 1000, 10);
+        timer.scheduleAtFixedRate(task, 500, 16); // 60Hz
 
     }
 }

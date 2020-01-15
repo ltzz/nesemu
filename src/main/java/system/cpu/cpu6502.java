@@ -697,6 +697,10 @@ public final class cpu6502 {
         programCounter = address;
     }
 
+    public void nextStep(){
+        interpret(ram.getRAMValue(programCounter));
+    }
+
     public void interpret(byte opcode){
         byte immediate;
         if( false ) {

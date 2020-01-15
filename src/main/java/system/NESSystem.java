@@ -13,6 +13,7 @@ public final class NESSystem {
     public Ram ram;
     public JoyPad joyPad;
     public int[] frameBuffer = new int[256*240];
+    public int count; // TODO
 
     public NESSystem(String romFileName){
 //        rom = new Rom("./palette.nes"); // FIXME: 一旦ハードコード
@@ -22,7 +23,6 @@ public final class NESSystem {
         ppu = new Ppu(frameBuffer);
         ram = new Ram(ppu, rom, joyPad);
         ppu.ppuCHR_ROM = rom.CHR_ROM;
-        ppu.refreshColorTables();
         cpu = new cpu6502(ram);
 
         reset();
@@ -37,6 +37,15 @@ public final class NESSystem {
     }
 
     public void systemExecute(){
-        cpu.interpret(cpu.ram.getRAMValue(cpu.programCounter));
+        if (count == 0) {
+            count = (count + 1) % 2;
+            cpu.nextStep();
+            ppu.nextStep();
+        } else {
+            count = (count + 1) % 2;
+            for (int i = 0; i < 4999; ++i) { // 暫定、5000命令ごとに1lineの設計 TODO: サイクル数計算する
+                cpu.nextStep();
+            }
+        }
     }
 }
