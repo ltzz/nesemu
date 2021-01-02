@@ -646,7 +646,9 @@ public final class cpu6502 {
     }
     void opPLP(){
         final int stackAddress = 0x100 + (regS & 0xFF) + 1;
-        regP = ram.getRAMValue(stackAddress);
+        byte value = (byte) (ram.getRAMValue(stackAddress) & 0xEF); // ブレイクフラグは実際には存在しないためPへのセット時クリア
+        value |= 0x20; // bit5: Rフラグはは常にセット
+        regP = value;
         regS = (byte)(regS + 1);
     }
 
