@@ -201,11 +201,10 @@ public final class cpu6502 {
     }
 
     void opTXS(){
-        evalNZ(regA);
         regS = regX;
     }
     void opTSX(){
-        evalNZ(regA);
+        evalNZ(regS);
         regX = regS;
     }
     void opTAX(){
