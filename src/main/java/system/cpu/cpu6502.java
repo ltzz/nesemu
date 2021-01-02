@@ -640,7 +640,8 @@ public final class cpu6502 {
 
     void opPHP(){
         final int stackAddress = 0x100 + (regS & 0xFF);
-        ram.setRAMValue(stackAddress, regP);
+        final byte value = (byte) (regP | 0x10); // ファミコンの仕様 PHPによってスタックに格納する状態フラグでは、ブレイクフラグをセット
+        ram.setRAMValue(stackAddress, value);
         regS = (byte)(regS - 1);
     }
     void opPLP(){
