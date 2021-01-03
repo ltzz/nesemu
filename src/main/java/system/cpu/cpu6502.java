@@ -137,7 +137,7 @@ public final class cpu6502 {
                 break;
             case IndirectX:
                 tmpAddress = (getIm8() & 0xFF) + (regX & 0xFF);
-                address = ram.getRAMValue16ByAddress8(tmpAddress);
+                address = ram.getRAMValue16ByAddress8(tmpAddress & 0xFF);
                 break;
             case Indirect_Y:
                 tmpAddress = (getIm8() & 0xFF);
@@ -241,14 +241,14 @@ public final class cpu6502 {
 
     void opDCM(Addressing addressing){
         byte value = getOperand(addressing);
-        byte resultValue = (byte)(value - 1);
+        byte resultValue = (byte)((value - 1) & 0xFF);
         ram.setRAMValue(getOperandAddress(addressing), resultValue);
         setRegAtCompare(regA, resultValue);
     }
 
     void opISC(Addressing addressing){
         byte value = getOperand(addressing);
-        byte resultValue = (byte)(value + 1);
+        byte resultValue = (byte)((value + 1) & 0xFF);
         ram.setRAMValue(getOperandAddress(addressing), resultValue);
         calcAndSetRegSBC(resultValue);
     }
@@ -348,7 +348,7 @@ public final class cpu6502 {
     void calcAndSetRegSBC(byte value){
         final int carry = regP & 0x01;
         final int notCarry = carry > 0 ? 0 : 1;
-        final int resultValue = (regA & 0xFF) - value - notCarry;
+        final int resultValue = (regA & 0xFF) - (value  & 0xFF) - notCarry;
         final byte regAOld = regA;
         regA = (byte)(resultValue);
         evalNZ(regA);
@@ -462,6 +462,25 @@ public final class cpu6502 {
         value = (byte)(resultValue);
         ram.setRAMValue(address, value);
         evalNZ(value);
+        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
+    }
+
+
+    void opASO(Addressing addressing) {
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
+        int resultValue = (value & 0xFF) << 1;
+        value = (byte)(resultValue);
+        ram.setRAMValue(address, value);
+
+        regA |= value;
+
+        evalNZ(regA);
         if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
             setFlagC(true);
         }
@@ -643,11 +662,10 @@ public final class cpu6502 {
         ram.setRAMValue(stackAddress, value);
         regS = (byte)(regS - 1);
     }
+
     void opPLP(){
         final int stackAddress = 0x100 + (regS & 0xFF) + 1;
-        byte value = (byte) (ram.getRAMValue(stackAddress) & 0xEF); // ブレイクフラグは実際には存在しないためPへのセット時クリア
-        value |= 0x20; // bit5: Rフラグはは常にセット
-        regP = value;
+        setRegP(ram.getRAMValue(stackAddress));
         regS = (byte)(regS + 1);
     }
 
@@ -664,7 +682,7 @@ public final class cpu6502 {
 
         // Pをpull
         final int stackAddressP = 0x100 + (regS & 0xFF) + 1;
-        regP = ram.getRAMValue(stackAddressP);
+        setRegP(ram.getRAMValue(stackAddressP));
         regS = (byte)(regS + 1);
 
         // プログラムカウンタをpull
@@ -701,6 +719,12 @@ public final class cpu6502 {
 
     public void nextStep(){
         interpret(ram.getRAMValue(programCounter));
+    }
+
+    public void setRegP(byte value){
+        value = (byte) (value & 0xEF); // ブレイクフラグは実際には存在しないためPへのセット時クリア
+        value |= 0x20; // bit5: Rフラグはは常にセット
+        regP = value;
     }
 
     public void interpret(byte opcode){
@@ -1408,6 +1432,18 @@ public final class cpu6502 {
             case 0xEA:
                 // NOP
                 programCounter++;
+                break;
+            case 0x03:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0x07:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.ZeroPage);
+                programCounter+= 2;
                 break;
             case 0x1A:
             case 0x3A:
