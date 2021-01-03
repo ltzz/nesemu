@@ -17,7 +17,7 @@ public final class ROMNestestTest {
 
             system.cpu.programCounter = 0xC000;
             system.cpu.setRegP((byte) 0x24);
-            for (int i = 0; i < 7000; ++i) {
+            for (int i = 0; i < 8991; ++i) {
                 String line = bufferedReader.readLine();
 
                 Matcher mRegA = Pattern.compile("(A:[0-9A-F]{2})").matcher(line);

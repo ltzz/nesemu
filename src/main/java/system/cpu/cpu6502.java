@@ -489,6 +489,49 @@ public final class cpu6502 {
         }
     }
 
+    void opRLA(Addressing addressing) {
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
+        int resultValue = (value & 0xFF) << 1;
+        value = (byte)(resultValue);
+        value |= (getFlagC() ? 0x01: 0x00);
+        ram.setRAMValue(address, value);
+
+        regA &= value;
+
+        evalNZ(regA);
+        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
+    }
+
+    void opLSE(Addressing addressing) {
+        final int address = getOperandAddress(addressing);
+        byte value = ram.getRAMValue(address);
+        int resultValue = (value & 0xFF) >> 1;
+        final int outputCarry = value & 0x01;
+        value = (byte)(resultValue);
+        ram.setRAMValue(address, value);
+
+        regA ^= value;
+
+        evalNZ(regA);
+        if( outputCarry > 0 ) { // TODO: ロジック確認してないので要確認
+            setFlagC(true);
+        }
+        else{
+            setFlagC(false);
+        }
+    }
+
+    void opRRA(Addressing addressing) {
+        opROR(addressing);
+        opADC(addressing);
+    }
+
     void opINX(){
         regX = (byte)(regX + 1);
         evalNZ(regX);
@@ -1444,6 +1487,162 @@ public final class cpu6502 {
                 // memory = shift left memory, A = A OR memory
                 opASO(Addressing.ZeroPage);
                 programCounter+= 2;
+                break;
+            case 0x0F:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0x13:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
+            case 0x17:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0x1B:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0x1F:
+                // ASO/SLO 本来 未定義命令
+                // memory = shift left memory, A = A OR memory
+                opASO(Addressing.AbsoluteX);
+                programCounter+= 3;
+                break;
+            case 0x23:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0x27:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.ZeroPage);
+                programCounter+= 2;
+                break;
+            case 0x2F:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0x33:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
+            case 0x37:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0x3B:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0x3F:
+                // RLA 本来 未定義命令
+                // memory = rotate left memory, A = A AND memory
+                opRLA(Addressing.AbsoluteX);
+                programCounter+= 3;
+                break;
+            case 0x43:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0x47:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.ZeroPage);
+                programCounter+= 2;
+                break;
+            case 0x4F:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0x53:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
+            case 0x57:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0x5B:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0x5F:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opLSE(Addressing.AbsoluteX);
+                programCounter+= 3;
+                break;
+            case 0x63:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.IndirectX);
+                programCounter+= 2;
+                break;
+            case 0x67:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.ZeroPage);
+                programCounter+= 2;
+                break;
+            case 0x6F:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.Absolute);
+                programCounter+= 3;
+                break;
+            case 0x73:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.Indirect_Y);
+                programCounter+= 2;
+                break;
+            case 0x77:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.ZeroPageX);
+                programCounter+= 2;
+                break;
+            case 0x7B:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.AbsoluteY);
+                programCounter+= 3;
+                break;
+            case 0x7F:
+                // SRE/LSE 本来 未定義命令
+                // memory = shift right memory, A = A EOR memory
+                opRRA(Addressing.AbsoluteX);
+                programCounter+= 3;
                 break;
             case 0x1A:
             case 0x3A:
