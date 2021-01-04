@@ -472,59 +472,18 @@ public final class cpu6502 {
 
 
     void opASO(Addressing addressing) {
-        final int address = getOperandAddress(addressing);
-        byte value = ram.getRAMValue(address);
-        int resultValue = (value & 0xFF) << 1;
-        value = (byte)(resultValue);
-        ram.setRAMValue(address, value);
-
-        regA |= value;
-
-        evalNZ(regA);
-        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
-            setFlagC(true);
-        }
-        else{
-            setFlagC(false);
-        }
+        opASL(addressing);
+        opORA(addressing);
     }
 
     void opRLA(Addressing addressing) {
-        final int address = getOperandAddress(addressing);
-        byte value = ram.getRAMValue(address);
-        int resultValue = (value & 0xFF) << 1;
-        value = (byte)(resultValue);
-        value |= (getFlagC() ? 0x01: 0x00);
-        ram.setRAMValue(address, value);
-
-        regA &= value;
-
-        evalNZ(regA);
-        if( resultValue >= 0x100 ) { // TODO: ロジック確認してないので要確認
-            setFlagC(true);
-        }
-        else{
-            setFlagC(false);
-        }
+        opROL(addressing);
+        opAND(addressing);
     }
 
     void opLSE(Addressing addressing) {
-        final int address = getOperandAddress(addressing);
-        byte value = ram.getRAMValue(address);
-        int resultValue = (value & 0xFF) >> 1;
-        final int outputCarry = value & 0x01;
-        value = (byte)(resultValue);
-        ram.setRAMValue(address, value);
-
-        regA ^= value;
-
-        evalNZ(regA);
-        if( outputCarry > 0 ) { // TODO: ロジック確認してないので要確認
-            setFlagC(true);
-        }
-        else{
-            setFlagC(false);
-        }
+        opLSR(addressing);
+        opEOR(addressing);
     }
 
     void opRRA(Addressing addressing) {
